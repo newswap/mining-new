@@ -3,11 +3,10 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/EnumerableSet.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import './uniswapv2/interfaces/IUniswapV2Pair.sol';
-import "./XNew.sol";
 
 // MasterChef is the master of Sushi. He can make Sushi and he is a fair guy.
 //
@@ -28,10 +27,10 @@ contract NewMine is Ownable {
         // We do some fancy math here. Basically, any point in time, the amount of SUSHIs
         // entitled to a user but is pending to be distributed is:
         //
-        //   pending reward = (user.amount * pool.accXNewPerShare) - user.rewardDebt
+        //   pending reward = (user.amount * pool.accNewPerShare) - user.rewardDebt
         //
         // Whenever a user deposits or withdraws LP tokens to a pool. Here's what happens:
-        //   1. The pool's `accXNewPerShare` (and `lastRewardBlock`) gets updated.
+        //   1. The pool's `accNewPerShare` (and `lastRewardBlock`) gets updated.
         //   2. User receives the pending reward sent to his/her address.
         //   3. User's `amount` gets updated.
         //   4. User's `rewardDebt` gets updated.
@@ -40,19 +39,18 @@ contract NewMine is Ownable {
     // Info of each pool.
     struct PoolInfo {
         IERC20 lpToken;           // Address of LP token contract.
-        // TODO 所有池子共享一个池子的xnew，池子的加/减以及newPerLP的变化都要更新allocPoint以及totalAllocPoint
+        // TODO 所有池子共享一个池子的new，池子的加/减以及newPerLP的变化都要更新allocPoint以及totalAllocPoint
         uint256 allocPoint;       // How many allocation points assigned to this pool. SUSHIs to distribute per block.
         uint256 lastRewardBlock;  // Last block number that SUSHIs distribution occurs.
-        uint256 accXNewPerShare; // Accumulated xNew per share, times 1e12. See below.
+        uint256 accNewPerShare; // Accumulated new per share, times 1e12. See below.
         uint256 newPerLP; // LP token price against NEW, times 1e12  TODO 此处要注意！！！
         bool state; // true-enable, false-disable
     }
 
-    XNew public xNew;
     address public wNew;
 
-    // xNew tokens created per block.
-    uint256 public xNewPerBlock;
+    // new tokens created per block.
+    uint256 public newPerBlock;
 
     // Info of each pool.
     PoolInfo[] public poolInfo;
@@ -70,29 +68,27 @@ contract NewMine is Ownable {
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
 
     constructor(
-        XNew _xNew,
         address _wNew,
-        uint256 _xNewPerBlock,
+        uint256 _newPerBlock,
         uint256 _startBlock,
         uint256 _endBlock   // TODO 有效期1年，之后若可继续需要调用activate重新激活
     ) public {
-        xNew = _xNew;
         wNew = _wNew;
-        xNewPerBlock = _xNewPerBlock;
+        newPerBlock = _newPerBlock;
         startBlock = _startBlock;
         endBlock = _endBlock;
     }
 
-    event Activated(uint256 _endBlock, uint256 _xNewPerBlock);
-    // TODO 测试  重启挖xnew， 若将来出块时间改了(如3s改成15s)，重新激活就可以
-    function activate(uint256 _endBlock, uint256 _xNewPerBlock, bool _withUpdate) public onlyOwner {
+    event Activated(uint256 _endBlock, uint256 _newPerBlock);
+    // TODO 测试  重启挖new， 若将来出块时间改了(如3s改成15s)，重新激活就可以
+    function activate(uint256 _endBlock, uint256 _newPerBlock, bool _withUpdate) public onlyOwner {
         if (_withUpdate) {
             massUpdatePools();
         }
         endBlock = _endBlock;
-        xNewPerBlock = _xNewPerBlock;
+        newPerBlock = _newPerBlock;
 
-        emit Activated(_endBlock, _xNewPerBlock);
+        emit Activated(_endBlock, _newPerBlock);
     }
 
     // return LP token price against NEW, times 1e12 
@@ -141,7 +137,7 @@ contract NewMine is Ownable {
             lpToken: _lpToken,
             allocPoint: 0,
             lastRewardBlock: lastRewardBlock,
-            accXNewPerShare: 0,
+            accNewPerShare: 0,
             newPerLP: newPerLP,
             state: true
         }));
@@ -171,26 +167,26 @@ contract NewMine is Ownable {
     // Return reward multiplier over the given _from to _to block.
     function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
         if (_to <= endBlock) {
-            return _to.sub(_from).mul(xNewPerBlock);
+            return _to.sub(_from).mul(newPerBlock);
         } else if (_from >= endBlock) {
             return 0;
         } else {
-            return endBlock.sub(_from).mul(xNewPerBlock);
+            return endBlock.sub(_from).mul(newPerBlock);
         }
     }
 
-    // View function to see pending xNew on frontend.
-    function pendingXNew(uint256 _pid, address _user) external view returns (uint256) {
+    // View function to see pending New on frontend.
+    function pendingNew(uint256 _pid, address _user) external view returns (uint256) {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
-        uint256 accXNewPerShare = pool.accXNewPerShare;
+        uint256 accNewPerShare = pool.accNewPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (pool.state && block.number > pool.lastRewardBlock && lpSupply != 0 && totalAllocPoint != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-            uint256 xNewReward = multiplier.mul(pool.allocPoint).div(totalAllocPoint);
-            accXNewPerShare = accXNewPerShare.add(xNewReward.mul(1e12).div(lpSupply));
+            uint256 newReward = multiplier.mul(pool.allocPoint).div(totalAllocPoint);
+            accNewPerShare = accNewPerShare.add(newReward.mul(1e12).div(lpSupply));
         }
-        return user.amount.mul(accXNewPerShare).div(1e12).sub(user.rewardDebt);
+        return user.amount.mul(accNewPerShare).div(1e12).sub(user.rewardDebt);
     }
 
     // Update reward variables for all pools. Be careful of gas spending!
@@ -214,12 +210,12 @@ contract NewMine is Ownable {
         }
 
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-        uint256 xNewReward = multiplier.mul(pool.allocPoint).div(totalAllocPoint);
-        xNew.mint(address(this), xNewReward);
-        pool.accXNewPerShare = pool.accXNewPerShare.add(xNewReward.mul(1e12).div(lpSupply));
+        uint256 newReward = multiplier.mul(pool.allocPoint).div(totalAllocPoint);
+        pool.accNewPerShare = pool.accNewPerShare.add(newReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
 
+    // 收割new用这个函数或withdraw，_amount=0即可
     // Deposit LP tokens to MasterChef for SUSHI allocation.
     function deposit(uint256 _pid, uint256 _amount) public {
         massUpdatePools();
@@ -227,9 +223,9 @@ contract NewMine is Ownable {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         if (user.amount > 0) {
-            uint256 pending = user.amount.mul(pool.accXNewPerShare).div(1e12).sub(user.rewardDebt);
+            uint256 pending = user.amount.mul(pool.accNewPerShare).div(1e12).sub(user.rewardDebt);
             if(pending > 0) {
-                safeXNewTransfer(msg.sender, pending);
+                Address.sendValue(msg.sender, pending);
             }
         }
         
@@ -238,16 +234,17 @@ contract NewMine is Ownable {
             user.amount = user.amount.add(_amount);
             // 如果pool不可用，用户可以把token打进来，但获得不了收益(allocPoint还是0)   不能报错，因为提款用的就是deposit 或 withdraw
             if(pool.state) {
-                // TODO 更新allocPoint和totalAllocPoint 
+                // 更新allocPoint和totalAllocPoint 
                 uint256 addPoint = _amount.mul(pool.newPerLP);
                 pool.allocPoint = pool.allocPoint.add(addPoint);
                 totalAllocPoint = totalAllocPoint.add(addPoint);
             }
         }
-        user.rewardDebt = user.amount.mul(pool.accXNewPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accNewPerShare).div(1e12);
         emit Deposit(msg.sender, _pid, _amount);
     }
 
+    // 收割new用这个函数或deposit，_amount=0即可
     // Withdraw LP tokens from MasterChef.
     function withdraw(uint256 _pid, uint256 _amount) public {
         PoolInfo storage pool = poolInfo[_pid];
@@ -256,9 +253,9 @@ contract NewMine is Ownable {
 
         massUpdatePools();
 
-        uint256 pending = user.amount.mul(pool.accXNewPerShare).div(1e12).sub(user.rewardDebt);
+        uint256 pending = user.amount.mul(pool.accNewPerShare).div(1e12).sub(user.rewardDebt);
         if(pending > 0) {
-            safeXNewTransfer(msg.sender, pending);
+            Address.sendValue(msg.sender, pending);
         }
         if(_amount > 0) {
             user.amount = user.amount.sub(_amount);
@@ -266,14 +263,14 @@ contract NewMine is Ownable {
 
             // 如果pool不可用，用户可以提取，allocPoint继续维持为0，不用减      不要报错，因为提款用的就是deposit 或 withdraw
             if(pool.state) {
-                // TODO 更新allocPoint和totalAllocPoint    可能减出负数吗？？？
+                // 更新allocPoint和totalAllocPoint    可能减出负数吗？？？
                 uint256 subPoint = _amount.mul(pool.newPerLP);
                 pool.allocPoint = pool.allocPoint.sub(subPoint);
                 totalAllocPoint = totalAllocPoint.sub(subPoint);
             }
         }
 
-        user.rewardDebt = user.amount.mul(pool.accXNewPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accNewPerShare).div(1e12);
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
@@ -285,7 +282,7 @@ contract NewMine is Ownable {
         emit EmergencyWithdraw(msg.sender, _pid, user.amount);
 
         if(pool.state) {
-            // TODO 更新allocPoint和totalAllocPoint    可能减出负数吗？？？
+            // 更新allocPoint和totalAllocPoint
             uint256 subPoint = user.amount.mul(pool.newPerLP);
             pool.allocPoint = pool.allocPoint.sub(subPoint);
             totalAllocPoint = totalAllocPoint.sub(subPoint);
@@ -295,13 +292,5 @@ contract NewMine is Ownable {
         user.rewardDebt = 0;
     }
 
-    // Safe sushi transfer function, just in case if rounding error causes pool to not have enough SUSHIs.
-    function safeXNewTransfer(address _to, uint256 _amount) internal {
-        uint256 xNewBal = xNew.balanceOf(address(this));
-        if (_amount > xNewBal) {
-            xNew.transfer(_to, xNewBal);
-        } else {
-            xNew.transfer(_to, _amount);
-        }
-    }
+    receive () external payable { }
 }
