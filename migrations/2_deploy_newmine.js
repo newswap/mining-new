@@ -5,19 +5,20 @@ module.exports = async function (deployer, network, accounts) {
   // console.log("accounts[0]:"+accounts[0]);
   
   // const wnew = "0xf4905b9bc02ce21c98eac1803693a9357d5253bf" // test/main
-  // const newPerBlock = web3.utils.toWei("57", 'ether');
+  // const maintainer = accounts[1]
+  // const newPerBlock = web3.utils.toWei("1", 'ether');
   // const number = await web3.eth.getBlockNumber();
-  // const startBlock = number + 600; // 30分钟后开启    
-  // // const oneYearBlock = 365*24*60*20; //挖一年 
-  // const oneYearBlock = 600 // 挖30分钟  挖到7点
-  // // _wNew, _newPerBlock, _startBlock, _endBlock
-  // await deployer.deploy(NewMine, wnew, newPerBlock, startBlock, startBlock+oneYearBlock);
+  // const startBlock = number; // 30分钟后开启    
+  // const oneYearBlock = 365*24*60*20; //挖一年 
+  // // const oneYearBlock = 600 // 挖30分钟  挖到7点
+  // // _wNew, _newPerBlock, _startBlock, _endBlock, _maintainer
+  // await deployer.deploy(NewMine, wnew, newPerBlock, startBlock, startBlock+oneYearBlock, maintainer);
   // const newMine = await NewMine.deployed();
   // console.log("newMine:" + newMine.address);
 
-  // // // // 创建nusdt-new矿池  id=0
+  // // maintainer添加nusdt-new矿池  id=0
   // const NUSDT_NEW = '0x56ae975581a382193ff36579c81281e179486c43' //TESTNET
-  // await newMine.addPool(NUSDT_NEW);
+  // await newMine.addPool(NUSDT_NEW, {from: accounts[1]});
   // var pool = await newMine.poolInfo(0);
   // console.log(pool.lpToken)
   // console.log(Number(pool.allocPoint))

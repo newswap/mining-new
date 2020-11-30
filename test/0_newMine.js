@@ -22,27 +22,49 @@ contract('NewMine', ([alice, bob, carol, dev, minter]) => {
         // const startBlock = number + 600; // 30分钟后开启
         const startBlock = number; // 直接开挖
         const oneYearBlock = 365*24*60*20; //挖一年
-
-        this.newMine = await NewMine.new(wnew, newPerBlock, startBlock, startBlock+oneYearBlock, {from: alice});
+        this.newMine = await NewMine.new(wnew, newPerBlock, startBlock, startBlock+oneYearBlock, dev,{from: alice});
         const getWNew = await this.newMine.wNew();
         const getNewPerBlock = await this.newMine.newPerBlock();
         const getStartBlock = await this.newMine.startBlock();
         const getEndBlock = await this.newMine.endBlock();
         const newMineOwner = await this.newMine.owner();
+        const maintainer = await this.newMine.maintainer(); 
 
         assert.equal(getWNew, wnew);
         assert.equal(getNewPerBlock.valueOf(), newPerBlock);
         assert.equal(getStartBlock.valueOf(), startBlock);
         assert.equal(getEndBlock.valueOf(), startBlock+oneYearBlock);
         assert.equal(newMineOwner, alice);
+        assert.equal(maintainer, dev);
     });
 
-    it('should allow owner and only owner to activate', async () => {
+    it('should allow owner and only owner to setMaintainer', async () => {     
+        await expectRevert(this.newMine.setMaintainer(bob, {from: dev}),'Ownable: caller is not the owner');
+        await this.newMine.setMaintainer(bob, {from: alice});
+
+        const maintainer = await this.newMine.maintainer(); 
+        assert.equal(maintainer, bob);
+    })
+  
+    it('should allow owner and only owner to emergencyWithdrawNew', async () => {   
+        await this.newMine.send(web3.utils.toWei('5', 'ether'), {from: alice})
+        assert.equal((await web3.eth.getBalance(this.newMine.address))/1e18, '5');
+
+        const balance = await web3.eth.getBalance(carol);
+        await expectRevert(this.newMine.emergencyWithdrawNew(carol, {from: dev}),'Ownable: caller is not the owner');
+        await this.newMine.emergencyWithdrawNew(carol, {from: alice});
+
+        const balance2 = await web3.eth.getBalance(carol);
+        assert.equal((await web3.eth.getBalance(this.newMine.address)).valueOf(), 0);
+        assert.equal((balance2-balance)/1e18, 5);
+    })
+  
+    it('should allow maintainer and only maintainer to activate', async () => {
         const number = await web3.eth.getBlockNumber();
         const endBlock = number + 2*365*24*60*20; //挖2年   
         const newPerBlock = web3.utils.toWei("1", 'ether');
-        await expectRevert(this.newMine.activate(endBlock, newPerBlock, true, {from: dev}),'Ownable: caller is not the owner');
-        await this.newMine.activate(endBlock, newPerBlock, true, {from: alice});
+        await expectRevert(this.newMine.activate(endBlock, newPerBlock, true, {from: alice}),'onlyMaintainer: caller is not the maintainer');
+        await this.newMine.activate(endBlock, newPerBlock, true, {from: bob});
         const getNewPerBlock = await this.newMine.newPerBlock();
         const getEndBlock = await this.newMine.endBlock();
         assert.equal(getNewPerBlock.valueOf(), newPerBlock);
@@ -85,8 +107,8 @@ contract('NewMine', ([alice, bob, carol, dev, minter]) => {
         it('should allow emergency withdraw', async () => {
             const startBlock = (await web3.eth.getBlockNumber()) + 100;
             // 1000 per block farming rate starting at startBlock with bonus until block startBlock+1000
-            this.newMine = await NewMine.new(this.wnew.address, '1000', startBlock, startBlock+1000, {from: alice});
-            await this.newMine.addPool(this.wnewToken1.address);
+            this.newMine = await NewMine.new(this.wnew.address, '1000', startBlock, startBlock+1000, dev, {from: alice});
+            await this.newMine.addPool(this.wnewToken1.address, {from: dev});
             assert.equal((await this.newMine.poolLength()).valueOf(), 1);
             var pool = await this.newMine.poolInfo(0);
             assert.equal(pool.lpToken, this.wnewToken1.address);
@@ -114,13 +136,13 @@ contract('NewMine', ([alice, bob, carol, dev, minter]) => {
             const number = await web3.eth.getBlockNumber();
             const startBlock = number + 100;
             // 1 per block farming rate starting at startBlock with bonus until block startBlock+1000
-            this.newMine = await NewMine.new(this.wnew.address, web3.utils.toWei('1', 'ether'), startBlock, startBlock+1000, {from: alice});
+            this.newMine = await NewMine.new(this.wnew.address, web3.utils.toWei('1', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
             await this.newMine.send(web3.utils.toWei('5', 'ether'), {from: alice})
             assert.equal(await web3.eth.getBalance(this.newMine.address), web3.utils.toWei('5', 'ether'));
 
             // // add pool
-            await expectRevert(this.newMine.addPool(this.wnewToken1.address, {from: dev}),'Ownable: caller is not the owner');
-            await this.newMine.addPool(this.wnewToken1.address);
+            await expectRevert(this.newMine.addPool(this.wnewToken1.address, {from: alice}),'onlyMaintainer: caller is not the maintainer');
+            await this.newMine.addPool(this.wnewToken1.address, {from: dev});
             await this.wnewToken1.approve(this.newMine.address, '1000', { from: bob });
             await this.newMine.deposit(0, '100', { from: bob });
             const balance = parseInt(await web3.eth.getBalance(bob)/1e18);
@@ -146,12 +168,12 @@ contract('NewMine', ([alice, bob, carol, dev, minter]) => {
             const number = await web3.eth.getBlockNumber();
             const startBlock = number + 100;
             // 1 per block farming rate starting at startBlock with bonus until block startBlock+1000
-            this.newMine = await NewMine.new(this.wnew.address, web3.utils.toWei('1', 'ether'), startBlock, startBlock+1000, {from: alice});
+            this.newMine = await NewMine.new(this.wnew.address, web3.utils.toWei('1', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
             await this.newMine.send(web3.utils.toWei('10', 'ether'), {from: alice})
             const newMineBalance = 10
             assert.equal((await web3.eth.getBalance(this.newMine.address))/1e18, newMineBalance);
 
-            await this.newMine.addPool(this.wnewToken1.address);
+            await this.newMine.addPool(this.wnewToken1.address, {from: dev});
             await this.wnewToken1.approve(this.newMine.address, '1000', { from: bob });
             await time.advanceBlockTo(number+99);
             assert.equal(parseInt(await web3.eth.getBalance(this.newMine.address)/1e18)-newMineBalance, '0');
@@ -170,6 +192,42 @@ contract('NewMine', ([alice, bob, carol, dev, minter]) => {
             assert.equal((await this.wnewToken1.balanceOf(bob)).valueOf(), '999');
 
             await expectRevert(this.newMine.deposit(0, '0', { from: bob }),'Address: insufficient balance'); //block 121
+        });
+
+        it('should distribute News to beneficiary', async () => {
+            const number = await web3.eth.getBlockNumber();
+            const startBlock = number + 100;
+            // 1 per block farming rate starting at startBlock with bonus until block startBlock+1000
+            this.newMine = await NewMine.new(this.wnew.address, web3.utils.toWei('1', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
+            await this.newMine.send(web3.utils.toWei('5', 'ether'), {from: alice})
+            assert.equal(await web3.eth.getBalance(this.newMine.address), web3.utils.toWei('5', 'ether'));
+
+            // // add pool
+            await expectRevert(this.newMine.addPool(this.wnewToken1.address, {from: alice}),'onlyMaintainer: caller is not the maintainer');
+            await this.newMine.addPool(this.wnewToken1.address, {from: dev});
+            await this.wnewToken1.approve(this.newMine.address, '1000', { from: bob });
+            await this.newMine.depositFor(carol, 0, '100', { from: bob });
+            const balanceBob = (await web3.eth.getBalance(bob)).valueOf();
+            const balanceCarol = (await web3.eth.getBalance(carol)).valueOf();
+            await time.advanceBlockTo(number+97);
+            await this.newMine.deposit(0, '0', { from: bob }); // Harvest    block number+98
+            await this.newMine.deposit(0, '0', { from: carol }); // Harvest   block number+99
+            assert.equal(parseInt((balanceBob-await web3.eth.getBalance(bob))/1e18), 0);
+            assert.equal(parseInt((await web3.eth.getBalance(carol)-balanceCarol)/1e18), 0);
+            await time.advanceBlockTo(number+100);
+            await this.newMine.deposit(0, '0', { from: bob }); // block number+101
+            await this.newMine.deposit(0, '0', { from: carol }); // Harvest   block number+102
+            assert.equal(Math.round((await web3.eth.getBalance(carol)-balanceCarol)/1e18), 2);
+            assert.equal(parseInt((balanceBob-await web3.eth.getBalance(bob))/1e18), 0);
+            await time.advanceBlockTo(number+103);
+            await this.newMine.deposit(0, '0', { from: bob }); // block 104
+            await this.newMine.deposit(0, '0', { from: carol }); // Harvest   block number+105
+            assert.equal(Math.round((await web3.eth.getBalance(carol)-balanceCarol)/1e18), 5);
+            assert.equal(parseInt((balanceBob-await web3.eth.getBalance(bob))/1e18), 0);
+            assert.equal(await web3.eth.getBalance(this.newMine.address)/1e18, 0);
+
+            await this.newMine.deposit(0, '0', { from: bob }); // block 106
+            await expectRevert(this.newMine.deposit(0, '0', { from: carol }),'Address: insufficient balance'); //block 107
         });
 
         // TODO 怎么分比较合适？？？
