@@ -43,6 +43,7 @@ contract NewMine is Ownable {
 
     address public maintainer;
     address public wNew;
+    uint256 public newSupply;
 
     // new tokens created per block.
     uint256 public newPerBlock;
@@ -169,6 +170,7 @@ contract NewMine is Ownable {
 
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
         uint256 newReward = multiplier.mul(pool.allocPoint).div(totalAllocPoint);
+        newSupply = newSupply.add(newReward);
         pool.accNewPerShare = pool.accNewPerShare.add(newReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
