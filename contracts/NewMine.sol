@@ -95,13 +95,9 @@ contract NewMine is Ownable {
         Address.sendValue(_to, address(this).balance);
     }
 
-    ///////////////////////////////////////////////////
-    //       function for Maintainer                 //
-    ///////////////////////////////////////////////////
-
     event Activated(uint256 _endBlock, uint256 _newPerBlock);
     // activate all pool after stop mining
-    function activate(uint256 _endBlock, uint256 _newPerBlock, bool _withUpdate) public onlyMaintainer {
+    function activate(uint256 _endBlock, uint256 _newPerBlock, bool _withUpdate) public onlyOwner {
         if (_withUpdate) {
             massUpdatePools();
         }
@@ -111,6 +107,9 @@ contract NewMine is Ownable {
         emit Activated(_endBlock, _newPerBlock);
     }
 
+    ///////////////////////////////////////////////////
+    //       function for Maintainer                 //
+    ///////////////////////////////////////////////////
     // Add a new lp to the pool. Can only be called by the owner.
     // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
     function addPool(IERC20 _lpToken) public onlyMaintainer {
