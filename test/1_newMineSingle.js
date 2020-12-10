@@ -53,7 +53,7 @@ contract('NewMineSingle', ([alice, bob, carol, dev, minter]) => {
         const endBlock = number + 2*365*24*60*20; //挖2年   
         const newPerBlock = web3.utils.toWei("1", 'ether');
         await expectRevert(this.newMineSingle.activate(endBlock, newPerBlock, {from: bob}),'Ownable: caller is not the owner');
-        await this.newMineSingle.activate(endBlock, newPerBlock, {from: alice});
+        await this.newMineSingle.activate(endBlock, newPerBlock, {from: alice}); 
         const getNewPerBlock = await this.newMineSingle.newPerBlock();
         const getEndBlock = await this.newMineSingle.endBlock();
         assert.equal(getNewPerBlock.valueOf(), newPerBlock);
@@ -94,7 +94,7 @@ contract('NewMineSingle', ([alice, bob, carol, dev, minter]) => {
         it('should give out News only after farming time', async () => {
             const number = await web3.eth.getBlockNumber();
             const startBlock = number + 100;
-            // 1 per block farming rate starting at startBlock with bonus until block startBlock+1000
+            // 1 new per block farming rate starting at startBlock with bonus until block startBlock+1000
             this.newMine = await NewMineSingle.new(this.wnewToken1.address, web3.utils.toWei('1', 'ether'), startBlock, startBlock+1000, {from: alice});
             await this.newMine.send(web3.utils.toWei('5', 'ether'), {from: alice})
             assert.equal(await web3.eth.getBalance(this.newMine.address), web3.utils.toWei('5', 'ether'));
@@ -114,16 +114,18 @@ contract('NewMineSingle', ([alice, bob, carol, dev, minter]) => {
             await time.advanceBlockTo(number+100);
             await this.newMine.deposit('0', { from: bob }); // block number+101
             assert.equal(parseInt(await web3.eth.getBalance(bob)/1e18)-balance, 1);
+            assert.equal((await this.newMine.newSupply())/1e18,1);
             await time.advanceBlockTo(number+104);
             await this.newMine.deposit('0', { from: bob }); // block 105
             assert.equal(parseInt(await web3.eth.getBalance(bob)/1e18)-balance, 5);
+            assert.equal((await this.newMine.newSupply())/1e18,5);
             assert.equal(await web3.eth.getBalance(this.newMine.address)/1e18, 0);
         });
 
         it('should not distribute News if no one deposit', async () => {
             const number = await web3.eth.getBlockNumber();
             const startBlock = number + 100;
-            // 1 per block farming rate starting at startBlock with bonus until block startBlock+1000
+            // 1 new per block farming rate starting at startBlock with bonus until block startBlock+1000
             this.newMine = await NewMineSingle.new(this.wnewToken1.address, web3.utils.toWei('1', 'ether'), startBlock, startBlock+1000, {from: alice});
             await this.newMine.send(web3.utils.toWei('10', 'ether'), {from: alice})
             const newMineBalance = 10
@@ -134,150 +136,139 @@ contract('NewMineSingle', ([alice, bob, carol, dev, minter]) => {
             assert.equal(parseInt(await web3.eth.getBalance(this.newMine.address)/1e18)-newMineBalance, '0');
             await time.advanceBlockTo(number+104);
             assert.equal(parseInt(await web3.eth.getBalance(this.newMine.address)/1e18)-newMineBalance, '0');
+            assert.equal((await this.newMine.newSupply())/1e18,0);
             await time.advanceBlockTo(number+109);
             const bobBalance = parseInt(await web3.eth.getBalance(bob)/1e18);
             await this.newMine.deposit('10', { from: bob }); // block 110
             assert.equal(parseInt(await web3.eth.getBalance(this.newMine.address)/1e18)-newMineBalance, '0');
+            assert.equal((await this.newMine.newSupply())/1e18,0);
             assert.equal(parseInt(await web3.eth.getBalance(bob)/1e18)-bobBalance, '0');
             assert.equal((await this.wnewToken1.balanceOf(bob)).valueOf(), '990');
             await time.advanceBlockTo(number+119);
             await this.newMine.withdraw('9', { from: bob }); // block 120
             assert.equal(await web3.eth.getBalance(this.newMine.address)/1e18, 0);
             assert.equal(parseInt(await web3.eth.getBalance(bob)/1e18)-bobBalance, 10);
+            assert.equal((await this.newMine.newSupply())/1e18,10);
             assert.equal((await this.wnewToken1.balanceOf(bob)).valueOf(), '999');
 
             await expectRevert(this.newMine.deposit('0', { from: bob }),'Address: insufficient balance'); //block 121
         });
 
-        // TODO 怎么分比较合适？？？
-        // it('should distribute News properly for each staker', async () => {
-        //     const number = await web3.eth.getBlockNumber();
-        //     const startBlock = number + 100;
-        //     // 1000 per block farming rate starting at startBlock with bonus until block startBlock+1000
-        //     this.newMine = await NewMine.new(this.xNew.address, this.wnew.address, '1000', startBlock, startBlock+1000, {from: alice});
-        //     await this.xNew.transferOwnership(this.newMine.address, { from: alice });
-        //     await this.newMine.addPool(this.wnewToken1.address);
-        //     await this.wnewToken1.approve(this.newMine.address, '1000', { from: alice });
-        //     await this.wnewToken1.approve(this.newMine.address, '1000', { from: bob });
-        //     await this.wnewToken1.approve(this.newMine.address, '1000', { from: carol });
-        //     // Alice deposits 10 wnewToken1 at block number+110
-        //     await time.advanceBlockTo(number+109);
-        //     await this.newMine.deposit(0, '10', { from: alice }); // number+110
-        //     // Bob deposits 20 wnewToken1 at block number+114
-        //     await time.advanceBlockTo(number+113);
-        //     await this.newMine.deposit(0, '20', { from: bob }); // number+114
-        //     // Carol deposits 30 LPs at block number+118
-        //     await time.advanceBlockTo(number+117);
-        //     await this.newMine.deposit(0, '30', { from: carol }); // number+118
-        //     // Alice deposits 10 more LPs at block number+120. At this point:
-        //     //   Alice should have: 4*1000 + 4*1/3*1000 + 2*1/6*1000 = 5666
-        //     //   MasterChef should have the remaining: 10000 - 5666 = 4334
-        //     await time.advanceBlockTo(number+119)
-        //     await this.newMine.deposit(0, '10', { from: alice }); // number+120
-        //     assert.equal((await this.xNew.totalSupply()).valueOf(), '10000');
-        //     assert.equal((await this.xNew.balanceOf(alice)).valueOf(), '5666');
-        //     assert.equal((await this.xNew.balanceOf(bob)).valueOf(), '0');
-        //     assert.equal((await this.xNew.balanceOf(carol)).valueOf(), '0');
-        //     assert.equal((await this.xNew.balanceOf(this.newMine.address)).valueOf(), '4334');
-        //     // Bob withdraws 5 LPs at block number+130. At this point:
-        //     //   Bob should have: 4*2/3*1000 + 2*2/6*1000 + 10*2/7*1000 = 6190
-        //     await time.advanceBlockTo(number+129)
-        //     await this.newMine.withdraw(0, '5', { from: bob });
-        //     assert.equal((await this.xNew.totalSupply()).valueOf(), '20000');
-        //     assert.equal((await this.xNew.balanceOf(alice)).valueOf(), '5666');
-        //     assert.equal((await this.xNew.balanceOf(bob)).valueOf(), '6190');
-        //     assert.equal((await this.xNew.balanceOf(carol)).valueOf(), '0');
-        //     assert.equal((await this.xNew.balanceOf(this.newMine.address)).valueOf(), '8144');
-        //     // Alice withdraws 20 LPs at block number+140.
-        //     // Bob withdraws 15 LPs at block number+150.
-        //     // Carol withdraws 30 LPs at block number+160.
-        //     await time.advanceBlockTo(number+139)
-        //     await this.newMine.withdraw(0, '20', { from: alice });
-        //     await time.advanceBlockTo(number+149)
-        //     await this.newMine.withdraw(0, '15', { from: bob });
-        //     await time.advanceBlockTo(number+159)
-        //     await this.newMine.withdraw(0, '30', { from: carol });
-        //     assert.equal((await this.xNew.totalSupply()).valueOf(), '50000');
-        //     // Alice should have: 5666 + 10*2/7*1000 + 10*2/6.5*1000 = 11600
-        //     assert.equal((await this.xNew.balanceOf(alice)).valueOf(), '11600');
-        //     // Bob should have: 6190 + 10*1.5/6.5 * 1000 + 10*1.5/4.5*1000 = 11831
-        //     assert.equal((await this.xNew.balanceOf(bob)).valueOf(), '11831');
-        //     // Carol should have: 2*3/6*1000 + 10*3/7*1000 + 10*3/6.5*1000 + 10*3/4.5*1000 + 10*1000 = 26568
-        //     assert.equal((await this.xNew.balanceOf(carol)).valueOf(), '26568');
-        //     // All of them should have 1000 LPs back.
-        //     assert.equal((await this.wnewToken1.balanceOf(alice)).valueOf(), '1000');
-        //     assert.equal((await this.wnewToken1.balanceOf(bob)).valueOf(), '1000');
-        //     assert.equal((await this.wnewToken1.balanceOf(carol)).valueOf(), '1000');
-        // });
+        it('should distribute News properly for each staker', async () => {
+            const number = await web3.eth.getBlockNumber();
+            const startBlock = number + 100;
+            // 0.1 new per block farming rate starting at startBlock with bonus until block startBlock+1000
+            this.newMine = await NewMineSingle.new(this.wnewToken1.address, web3.utils.toWei('0.1', 'ether'), startBlock, startBlock+1000, {from: alice});
+            await this.newMine.send(web3.utils.toWei('5', 'ether'), {from: minter})
+            const newMineBalance = web3.utils.toWei('5', 'ether')    
+            assert.equal((await web3.eth.getBalance(this.newMine.address)).valueOf(), newMineBalance);
 
-        // it('should give proper News allocation to each pool', async () => {
-        //     const number = await web3.eth.getBlockNumber();
-        //     const startBlock = number + 100;
-        //     // 1 per block farming rate starting at startBlock with bonus until block startBlock+1000
-        //     this.newMine = await NewMine.new(this.wnew.address, web3.utils.toWei('1', 'ether'), startBlock, startBlock+1000, {from: alice});
-        //     await this.newMine.send(web3.utils.toWei('10', 'ether'), {from: alice})
-        //     const newMineBalance = 10
-        //     assert.equal((await web3.eth.getBalance(this.newMine.address))/1e18, newMineBalance);
+            await this.wnewToken1.approve(this.newMine.address, '1000', { from: alice });
+            await this.wnewToken1.approve(this.newMine.address, '1000', { from: bob });
+            await this.wnewToken1.approve(this.newMine.address, '1000', { from: carol });
+            // Alice deposits 10 wnewToken1 at block number+110
+            await time.advanceBlockTo(number+109);
+            await this.newMine.deposit('10', { from: alice }); // number+110
+            const aliceBalance = parseInt((await web3.eth.getBalance(alice)));
+            // console.log("aliceBalance = " + aliceBalance)
+            // Bob deposits 20 wnewToken1 at block number+114
+            await time.advanceBlockTo(number+113);
+            await this.newMine.deposit('20', { from: bob }); // number+114
+            const bobBalance = parseInt((await web3.eth.getBalance(bob)));
+            // Carol deposits 30 LPs at block number+118
+            await time.advanceBlockTo(number+117);
+            await this.newMine.deposit('30', { from: carol }); // number+118
+            const carolBalance = parseInt((await web3.eth.getBalance(carol)));
+            // Alice deposits 10 more LPs at block number+120. At this point:
+            //   Alice should have: 4*0.1 + 4*1/3*0.1 + 2*1/6*0.1 = 0.5666666666666666
+            //   MasterChef should have the remaining: 5 - 0.5666666666666666 = 4.433333333333333
+            await time.advanceBlockTo(number+119)
+            const aliceTX = await this.newMine.deposit('10', { from: alice }); // number+120
+            // var receipt = await web3.eth.getTransaction(aliceTX.tx);
+            // console.log(receipt)
+            // console.log(aliceTX.receipt.gasUsed)
+            var aliceTXUsed = parseInt(aliceTX.receipt.gasUsed) * 20000000000;
+            assert.equal((await this.newMine.newSupply())/1e18, '1');        
+            assert.equal(((parseInt(await web3.eth.getBalance(alice))+aliceTXUsed-aliceBalance)/1e18).toFixed(4), 0.5667);
+            assert.equal(parseInt(await web3.eth.getBalance(bob))-bobBalance, '0');
+            assert.equal(parseInt(await web3.eth.getBalance(carol))-carolBalance, '0');
+            assert.equal(((newMineBalance - parseInt((await web3.eth.getBalance(this.newMine.address))))/1e18).toFixed(4), 0.5667);
 
-        //     await this.wnewToken1.approve(this.newMine.address, '1000', { from: alice });
-        //     await this.wnewToken2.approve(this.newMine.address, '1000', { from: bob });
-        //     // Add first LP to the pool with allocation 1
-        //     await this.newMine.addPool(this.wnewToken1.address);
-        //     // Alice deposits 10 LPs at block number+110
-        //     await time.advanceBlockTo(number+109);
-        //     await this.newMine.deposit(0, '5', { from: alice });
-        //     // Add LP2 to the pool with allocation 2 at block number+120
-        //     await time.advanceBlockTo(number+119);
-        //     await this.newMine.addPool(this.wnewToken2.address);
-        //     // Alice should have 10*1000 pending reward
-        //     assert.equal((await this.newMine.pendingXNew(0, alice)).valueOf(), '10000');
-        //     // Bob deposits 10 LP2s at block number+125
-        //     await time.advanceBlockTo(number+124);
-        //     await this.newMine.deposit(1, '10', { from: bob });
-        //     // Alice should have 10000 + 5*1000 = 15000 pending reward    因为此时bob刚存入，所以xnew还是全部归alice
-        //     assert.equal((await this.newMine.pendingXNew(0, alice)).valueOf(), '15000');
-        //     await time.advanceBlockTo(number+130);
-        //     // At block 130. Bob should get 5*2/3*1000 = 3333. Alice should get 15000+5*1/3*1000=16666.  wnewToken1和wnewToken2背后lP代表的new数量一致，所以对比数量就行
-        //     assert.equal((await this.newMine.pendingXNew(0, alice)).valueOf(), '16666');
-        //     assert.equal((await this.newMine.pendingXNew(1, bob)).valueOf(), '3333');
+            // Bob withdraws 5 LPs at block number+130. At this point:
+            //   Bob should have: 4*2/3*0.1 + 2*2/6*0.1 + 10*2/7*0.1 = 0.6190476190476191
+            await time.advanceBlockTo(number+129)
+            const bobTX = await this.newMine.withdraw('5', { from: bob });
+            // console.log(bobTX.receipt.gasUsed)
+            var bobTXUsed = parseInt(bobTX.receipt.gasUsed) * 20000000000;
+            assert.equal((await this.newMine.newSupply())/1e18,'2');     
+            assert.equal(((parseInt(await web3.eth.getBalance(alice))+aliceTXUsed-aliceBalance)/1e18).toFixed(4), 0.5667);
+            assert.equal(((parseInt(await web3.eth.getBalance(bob))+bobTXUsed-bobBalance)/1e18).toFixed(4), 0.619);
+            assert.equal(parseInt(await web3.eth.getBalance(carol))-carolBalance, '0');
+            assert.equal(((newMineBalance - parseInt((await web3.eth.getBalance(this.newMine.address))))/1e18).toFixed(4), 0.5667+0.619);
 
-        //     const pool = await this.newMine.poolInfo(0);
-        //     assert.equal(pool.allocPoint/1e12, 5);
-        //     const pool2 = await this.newMine.poolInfo(1);
-        //     assert.equal(pool2.allocPoint/1e12, 10);
-        //     assert.equal((await this.newMine.totalAllocPoint())/1e12, 15);
-        // });
+            // Alice withdraws 20 LPs at block number+140.
+            // Bob withdraws 15 LPs at block number+150.
+            // Carol withdraws 30 LPs at block number+160.
+            await time.advanceBlockTo(number+139)
+            const aliceTX2 = await this.newMine.withdraw('20', { from: alice });
+            aliceTXUsed = parseInt(aliceTX2.receipt.gasUsed) * 20000000000 + aliceTXUsed;
+            await time.advanceBlockTo(number+149)
+            const bobTX2 = await this.newMine.withdraw('15', { from: bob });
+            bobTXUsed = parseInt(bobTX2.receipt.gasUsed) * 20000000000 + bobTXUsed;
+            await time.advanceBlockTo(number+159)
+            const carolTX = await this.newMine.withdraw('30', { from: carol });
+            var carolTXUsed = parseInt(carolTX.receipt.gasUsed) * 20000000000;
+            assert.equal((await this.newMine.newSupply())/1e18,'5');        
+            // Alice should have: 0.5666666666666666 + 10*2/7*0.1 + 10*2/6.5*0.1 = 1.1600732600732602
+            assert.equal(((parseInt(await web3.eth.getBalance(alice))+aliceTXUsed-aliceBalance)/1e18).toFixed(4), 1.1601);
+            // Bob should have: 0.6190476190476191 + 10*1.5/6.5 * 0.1 + 10*1.5/4.5*0.1 = 1.1831501831501832
+            assert.equal(((parseInt(await web3.eth.getBalance(bob))+bobTXUsed-bobBalance)/1e18).toFixed(4), 1.1832);
+            // Carol should have: 2*3/6*0.1 + 10*3/7*0.1 + 10*3/6.5*0.1 + 10*3/4.5*0.1 + 10*0.1 = 2.656776556776557
+            assert.equal(((parseInt(await web3.eth.getBalance(carol))+carolTXUsed-carolBalance)/1e18).toFixed(4), 2.6568);
+            assert.equal(((newMineBalance - parseInt((await web3.eth.getBalance(this.newMine.address))))/1e18).toFixed(4), 5);
 
-        // it('should stop giving bonus xNews after the period ends', async () => {
-        //     const number = await web3.eth.getBlockNumber();
-        //     const startBlock = number + 100;
-        //     const endBlock = number + 200;
-        //     // 1000 per block farming rate starting at startBlock with bonus until block startBlock+100
-        //     this.newMine = await NewMine.new(this.xNew.address, this.wnew.address, '1000', startBlock, endBlock, {from: alice});
-        //     await this.xNew.transferOwnership(this.newMine.address, { from: alice });
-        //     await this.wnewToken1.approve(this.newMine.address, '1000', { from: alice });
-        //     await this.newMine.addPool(this.wnewToken1.address);
-        //     // Alice deposits 10 LPs at block number+ 190
-        //     await time.advanceBlockTo(number + 189);
-        //     await this.newMine.deposit(0, '10', { from: alice });
-        //     // At block number+205, she should have 1000*10 = 10000 pending.
-        //     await time.advanceBlockTo(number + 205);
-        //     assert.equal((await this.newMine.pendingXNew(0, alice)).valueOf(), '10000');
-        //     // At block number+206, Alice withdraws all pending rewards and should get 10000.
-        //     await this.newMine.deposit(0, '0', { from: alice });
-        //     assert.equal((await this.newMine.pendingXNew(0, alice)).valueOf(), '0');
-        //     assert.equal((await this.xNew.balanceOf(alice)).valueOf(), '10000');
+            // All of them should have 1000 LPs back.
+            assert.equal((await this.wnewToken1.balanceOf(alice)).valueOf(), '1000');
+            assert.equal((await this.wnewToken1.balanceOf(bob)).valueOf(), '1000');
+            assert.equal((await this.wnewToken1.balanceOf(carol)).valueOf(), '1000');
+        });
 
-        //     await this.newMine.withdraw(0, '10', { from: alice });
-        //     assert.equal((await this.wnewToken1.balanceOf(alice)).valueOf(), '1000');
-        //     assert.equal((await this.newMine.pendingXNew(0, alice)).valueOf(), '0');
-        //     assert.equal((await this.xNew.balanceOf(alice)).valueOf(), '10000');
-        // });
+        it('should stop giving News after the period ends', async () => {
+            const number = await web3.eth.getBlockNumber();
+            const startBlock = number + 100;
+            const endBlock = number + 200;
+            // 0.1 new per block farming rate starting at startBlock with bonus until block startBlock+1000
+            this.newMine = await NewMineSingle.new(this.wnewToken1.address, web3.utils.toWei('0.1', 'ether'), startBlock, endBlock, {from: alice});
+            await this.newMine.send(web3.utils.toWei('5', 'ether'), {from: minter})
+            const newMineBalance = web3.utils.toWei('5', 'ether')    
+            assert.equal((await web3.eth.getBalance(this.newMine.address)).valueOf(), newMineBalance);
 
-        // TODO 测试LP被废弃和重启  同mining-core
-        // TODO setPoolState 测试节点废弃无收益
-        // TODO newPerLP是否计算正确
-        // TODO 测试swap交易后，LP代表的new变化引起收益不一致
-        // TODO 测试100+的lp，并且都有存款，更新一个lpprice需要的消耗，以及用户存/取的费用消耗    以及奖励分配情况
+            await this.wnewToken1.approve(this.newMine.address, '1000', { from: alice });
+            // Alice deposits 10 LPs at block number+ 190
+            await time.advanceBlockTo(number + 189);
+            await this.newMine.deposit('10', { from: alice });
+            const aliceBalance = parseInt((await web3.eth.getBalance(alice)));
+            // At block number+205, she should have 10*0.1 = 1 pending.
+            await time.advanceBlockTo(number + 205);
+            assert.equal((await this.newMine.pendingNew(alice))/1e18, '1');
+            // At block number+206, Alice withdraws all pending rewards and should get 1.
+            const aliceTX = await this.newMine.deposit('0', { from: alice });
+            var aliceTXUsed = parseInt(aliceTX.receipt.gasUsed) * 20000000000;
+            assert.equal((await this.newMine.newSupply())/1e18, '1');       
+            assert.equal(parseInt((parseInt(await web3.eth.getBalance(alice))+aliceTXUsed-aliceBalance)/1e18), '1');
+            assert.equal(((newMineBalance - parseInt((await web3.eth.getBalance(this.newMine.address))))/1e18), 1);
+
+            await this.newMine.withdraw('9', { from: alice });
+            assert.equal((await this.wnewToken1.balanceOf(alice)).valueOf(), '999');
+            assert.equal((await this.newMine.pendingNew(alice)).valueOf(), '0');
+            assert.equal(((newMineBalance - parseInt((await web3.eth.getBalance(this.newMine.address))))/1e18), 1);
+
+            await time.advanceBlockTo(number + 219);
+            // activiate pool at number + 220
+            await this.newMine.activate(number + 500, web3.utils.toWei('0.1', 'ether'), {from: alice}); 
+            assert.equal((await this.newMine.pendingNew(alice)).valueOf(), '0');
+            await time.advanceBlockTo(number + 230);
+            assert.equal((await this.newMine.pendingNew(alice))/1e18, '1');
+        });
     });
 });

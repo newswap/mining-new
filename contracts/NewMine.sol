@@ -201,8 +201,6 @@ contract NewMine is Ownable {
         if(pool.state) {
             uint256 lpBalance = pool.lpToken.balanceOf(address(this));
             pool.newPerLP = getNewPerLP(address(pool.lpToken));
-
-            // TODO 要除以1e12吗？？？？如果除还有增/减仓2处代码      如果除可能会出现小数而变0的问题
             uint256 allocPoint = lpBalance.mul(pool.newPerLP);
             totalAllocPoint = totalAllocPoint.sub(pool.allocPoint).add(allocPoint);
             pool.allocPoint = allocPoint;
@@ -232,24 +230,18 @@ contract NewMine is Ownable {
     // 收割new用这个函数或withdraw，_amount=0即可
     // Deposit LP tokens to NewMine for NEW allocation.
     function deposit(uint256 _pid, uint256 _amount) public {
-        depositFor(msg.sender, _pid, _amount);
-    }
+        PoolInfo storage pool = poolInfo[_pid];
+        UserInfo storage user = userInfo[_pid][msg.sender]; 
 
-    // TODO 此处任何人都可以给对方提取NEW收益，会有问题吗？
-    function depositFor(address payable _beneficiary, uint256 _pid, uint256 _amount) public {
-        require(_beneficiary != address(0x0), "deposit: beneficiary cannot be the zero address");
-
+        // TODO 效率问题？每次用户存取都需要更新所有池子，因为pool.allocPoint将变化
         massUpdatePools();
 
-        PoolInfo storage pool = poolInfo[_pid];
-        UserInfo storage user = userInfo[_pid][_beneficiary];
         if (user.amount > 0) {
             uint256 pending = user.amount.mul(pool.accNewPerShare).div(1e12).sub(user.rewardDebt);
             if(pending > 0) {
-                Address.sendValue(_beneficiary, pending);
+                Address.sendValue(msg.sender, pending);
             }
-        }
-        
+        }     
         if(_amount > 0) {
             pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
             user.amount = user.amount.add(_amount);
@@ -262,7 +254,7 @@ contract NewMine is Ownable {
             }
         }
         user.rewardDebt = user.amount.mul(pool.accNewPerShare).div(1e12);
-        emit Deposit(_beneficiary, _pid, _amount);        
+        emit Deposit(msg.sender, _pid, _amount);        
     }
 
     // 收割new用这个函数或deposit，_amount=0即可
@@ -272,6 +264,7 @@ contract NewMine is Ownable {
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
 
+        // TODO 效率问题？每次用户存取都需要更新所有池子，因为pool.allocPoint将变化
         massUpdatePools();
 
         uint256 pending = user.amount.mul(pool.accNewPerShare).div(1e12).sub(user.rewardDebt);

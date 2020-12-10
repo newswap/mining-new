@@ -84,7 +84,8 @@ module.exports = {
     development: {
       host: "127.0.0.1",     // Localhost (default: none)
       port: 8545,            // Standard Ethereum port (default: none)
-      network_id: "*"       // Any network (default: none)
+      network_id: "*",      // Any network (default: none)
+      gasPrice: 20000000000 // 20 gwei
     },
     //https://rpc1.newchain.newtonproject.org
     //https://rpc2.newchain.cloud.diynova.com
@@ -94,21 +95,21 @@ module.exports = {
         return new HDWalletProvider(testnet_mnemonic, 'https://rpc2.newchain.cloud.diynova.com', "testnet", 0, 5)
       },
       network_id: "1007", // newchain testnet id
-      gasPrice: 500000000000000
+      gasPrice: 500000000000000 // 50w gwei
     },
     devnet: {
       provider: function() {
         return new HDWalletProvider(devnet_mnemonic, 'https://devnet.newchain.cloud.diynova.com', "devnet", 0, 5)
       },
       network_id: "1002", // newchain devnet id
-      gasPrice: 500000000000000
+      gasPrice: 500000000000000 // 50w gwei
     },
     mainnet: {
       provider: function() {
         return new HDWalletProvider("", 'https://cn.rpc.mainnet.diynova.com', "mainnet", 0, 5)
       },
       network_id: "1012", // newchain mainnet id
-      gasPrice: 500000000000000              
+      gasPrice: 500000000000000  // 50w gwei             
     }
   },
 
