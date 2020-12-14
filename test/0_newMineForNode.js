@@ -1,11 +1,11 @@
 const { expectRevert, time } = require('@openzeppelin/test-helpers');
 const { web3 } = require('@openzeppelin/test-helpers/src/setup');
 const MockERC20 = artifacts.require('MockERC20');
-const NewMine = artifacts.require("NewMine");
+const NewMineForNode = artifacts.require("NewMineForNode");
 const UniswapV2Pair = artifacts.require('UniswapV2Pair');
 const UniswapV2Factory = artifacts.require('UniswapV2Factory');
 
-contract('NewMine', ([alice, bob, carol, dev, minter]) => {
+contract('NewMineForNode', ([alice, bob, carol, dev, minter]) => {
     beforeEach(async () => {
         // const number = await time.latestBlock(); // string
         // console.log("number:"+ number)  
@@ -22,7 +22,7 @@ contract('NewMine', ([alice, bob, carol, dev, minter]) => {
         // const startBlock = number + 600; // 30分钟后开启
         const startBlock = number; // 直接开挖
         const oneYearBlock = 365*24*60*20; //挖一年
-        this.newMine = await NewMine.new(wnew, newPerBlock, startBlock, startBlock+oneYearBlock, dev,{from: alice});
+        this.newMine = await NewMineForNode.new(wnew, newPerBlock, startBlock, startBlock+oneYearBlock, dev,{from: alice});
         const getWNew = await this.newMine.wNew();
         const getNewPerBlock = await this.newMine.newPerBlock();
         const getStartBlock = await this.newMine.startBlock();
@@ -107,7 +107,7 @@ contract('NewMine', ([alice, bob, carol, dev, minter]) => {
         it('should allow emergency withdraw', async () => {
             const startBlock = (await web3.eth.getBlockNumber()) + 100;
             // 1000 per block farming rate starting at startBlock with bonus until block startBlock+1000
-            this.newMine = await NewMine.new(this.wnew.address, '1000', startBlock, startBlock+1000, dev, {from: alice});
+            this.newMine = await NewMineForNode.new(this.wnew.address, '1000', startBlock, startBlock+1000, dev, {from: alice});
             await this.newMine.addPool(this.wnewToken1.address, {from: dev});
             assert.equal((await this.newMine.poolLength()).valueOf(), 1);
             var pool = await this.newMine.poolInfo(0);
@@ -136,7 +136,7 @@ contract('NewMine', ([alice, bob, carol, dev, minter]) => {
             const number = await web3.eth.getBlockNumber();
             const startBlock = number + 100;
             // 1 per block farming rate starting at startBlock with bonus until block startBlock+1000
-            this.newMine = await NewMine.new(this.wnew.address, web3.utils.toWei('1', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
+            this.newMine = await NewMineForNode.new(this.wnew.address, web3.utils.toWei('1', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
             await this.newMine.send(web3.utils.toWei('5', 'ether'), {from: alice})
             assert.equal(await web3.eth.getBalance(this.newMine.address), web3.utils.toWei('5', 'ether'));
 
@@ -168,7 +168,7 @@ contract('NewMine', ([alice, bob, carol, dev, minter]) => {
             const number = await web3.eth.getBlockNumber();
             const startBlock = number + 100;
             // 1 per block farming rate starting at startBlock with bonus until block startBlock+1000
-            this.newMine = await NewMine.new(this.wnew.address, web3.utils.toWei('1', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
+            this.newMine = await NewMineForNode.new(this.wnew.address, web3.utils.toWei('1', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
             await this.newMine.send(web3.utils.toWei('10', 'ether'), {from: alice})
             const newMineBalance = 10
             assert.equal((await web3.eth.getBalance(this.newMine.address))/1e18, newMineBalance);
@@ -198,7 +198,7 @@ contract('NewMine', ([alice, bob, carol, dev, minter]) => {
             const number = await web3.eth.getBlockNumber();
             const startBlock = number + 100;
             // 0.1 new per block farming rate starting at startBlock with bonus until block startBlock+1000
-            this.newMine = await NewMine.new(this.wnew.address, web3.utils.toWei('0.1', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
+            this.newMine = await NewMineForNode.new(this.wnew.address, web3.utils.toWei('0.1', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
             await this.newMine.send(web3.utils.toWei('5', 'ether'), {from: minter})
             const newMineBalance = web3.utils.toWei('5', 'ether')    
             assert.equal((await web3.eth.getBalance(this.newMine.address)).valueOf(), newMineBalance);
@@ -277,7 +277,7 @@ contract('NewMine', ([alice, bob, carol, dev, minter]) => {
         //     const number = await web3.eth.getBlockNumber();
         //     const startBlock = number + 100;
         //     // 1 per block farming rate starting at startBlock with bonus until block startBlock+1000
-        //     this.newMine = await NewMine.new(this.wnew.address, web3.utils.toWei('1', 'ether'), startBlock, startBlock+1000, {from: alice});
+        //     this.newMine = await NewMineForNode.new(this.wnew.address, web3.utils.toWei('1', 'ether'), startBlock, startBlock+1000, {from: alice});
         //     await this.newMine.send(web3.utils.toWei('10', 'ether'), {from: alice})
         //     const newMineBalance = 10
         //     assert.equal((await web3.eth.getBalance(this.newMine.address))/1e18, newMineBalance);
@@ -316,7 +316,7 @@ contract('NewMine', ([alice, bob, carol, dev, minter]) => {
             const startBlock = number + 100;
             const endBlock = number + 200;
             // 0.1 new per block farming rate starting at startBlock with bonus until block startBlock+1000
-            this.newMine = await NewMine.new(this.wnew.address, web3.utils.toWei('0.1', 'ether'), startBlock, endBlock, dev, {from: alice});
+            this.newMine = await NewMineForNode.new(this.wnew.address, web3.utils.toWei('0.1', 'ether'), startBlock, endBlock, dev, {from: alice});
             await this.newMine.send(web3.utils.toWei('5', 'ether'), {from: minter})
             const newMineBalance = web3.utils.toWei('5', 'ether')    
             assert.equal((await web3.eth.getBalance(this.newMine.address)).valueOf(), newMineBalance);
