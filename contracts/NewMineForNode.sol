@@ -193,6 +193,23 @@ contract NewMineForNode is Ownable {
     //       function for Keeper                     //
     ///////////////////////////////////////////////////
 
+    function updateNewPerLPAll() public {
+        massUpdatePools();
+
+        // 一次性将价格全部更新
+        uint256 length = poolInfo.length;
+        for (uint256 pid = 0; pid < length; ++pid) {
+            PoolInfo storage pool = poolInfo[pid];
+            if(pool.state) {
+                uint256 lpBalance = pool.lpToken.balanceOf(address(this));
+                pool.newPerLP = getNewPerLP(address(pool.lpToken));
+                uint256 allocPoint = lpBalance.mul(pool.newPerLP);
+                totalAllocPoint = totalAllocPoint.sub(pool.allocPoint).add(allocPoint);
+                pool.allocPoint = allocPoint;
+            }
+        }
+    }
+
     // update LP token price against NEW
     function updateNewPerLP(uint256 _pid) public {
         massUpdatePools();

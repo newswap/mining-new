@@ -32,7 +32,7 @@ module.exports = async function (deployer, network, accounts) {
   // console.log(parseInt(Number(reserves.reserve1)*1e12/Number(await pair.totalSupply())))
   // console.log(parseInt(Number(reserves.reserve1)*1e12/Number(await pair.totalSupply())) == Number(pool.newPerLP))
 
-  // // 添加NBTC_NEW矿池 id=2
+  // // 添加NBTC_NEW矿池 id=1
   // const NBTC_NEW = '0xdda2c1d6237dab9351af93e1f3f81047f897e45b' //TESTNET
   // await newMine.addPool(NBTC_NEW, {from: maintainer});
   // var pool = await newMine.poolInfo(1);
