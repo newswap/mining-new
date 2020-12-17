@@ -196,7 +196,6 @@ contract NewMineForNode is Ownable {
     function updateNewPerLPAll() public {
         massUpdatePools();
 
-        // 一次性将价格全部更新
         uint256 length = poolInfo.length;
         for (uint256 pid = 0; pid < length; ++pid) {
             PoolInfo storage pool = poolInfo[pid];
@@ -244,14 +243,13 @@ contract NewMineForNode is Ownable {
     //       function for Miner                      //
     ///////////////////////////////////////////////////
 
-    // 收割new用这个函数或withdraw，_amount=0即可
     // Deposit LP tokens to NewMine for NEW allocation.
     function deposit(uint256 _pid, uint256 _amount) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender]; 
 
-        // TODO 效率问题？每次用户存取都需要更新所有池子，因为pool.allocPoint将变化
-        massUpdatePools();
+        // TODO 效率问题————每次用户存取都需要更新所有池子的奖励(顺便更新下lp价格)，因为pool.allocPoint将变化
+        updateNewPerLP(_pid);
 
         if (user.amount > 0) {
             uint256 pending = user.amount.mul(pool.accNewPerShare).div(1e12).sub(user.rewardDebt);
@@ -262,9 +260,7 @@ contract NewMineForNode is Ownable {
         if(_amount > 0) {
             pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
             user.amount = user.amount.add(_amount);
-            // 如果pool不可用，用户可以把token打进来，但获得不了收益(allocPoint还是0)   不能报错，因为提款用的就是deposit 或 withdraw
             if(pool.state) {
-                // 更新allocPoint和totalAllocPoint 
                 uint256 addPoint = _amount.mul(pool.newPerLP);
                 pool.allocPoint = pool.allocPoint.add(addPoint);
                 totalAllocPoint = totalAllocPoint.add(addPoint);
@@ -274,15 +270,14 @@ contract NewMineForNode is Ownable {
         emit Deposit(msg.sender, _pid, _amount);        
     }
 
-    // 收割new用这个函数或deposit，_amount=0即可
     // Withdraw LP tokens from NewMine.
     function withdraw(uint256 _pid, uint256 _amount) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
 
-        // TODO 效率问题？每次用户存取都需要更新所有池子，因为pool.allocPoint将变化
-        massUpdatePools();
+        // TODO 效率问题————每次用户存取都需要更新所有池子的奖励(顺便更新下lp价格)，因为pool.allocPoint将变化
+        updateNewPerLP(_pid);
 
         uint256 pending = user.amount.mul(pool.accNewPerShare).div(1e12).sub(user.rewardDebt);
         if(pending > 0) {
@@ -291,10 +286,7 @@ contract NewMineForNode is Ownable {
         if(_amount > 0) {
             user.amount = user.amount.sub(_amount);
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
-
-            // 如果pool不可用，用户可以提取，allocPoint继续维持为0，不用减      不要报错，因为提款用的就是deposit 或 withdraw
             if(pool.state) {
-                // 更新allocPoint和totalAllocPoint    可能减出负数吗？？？
                 uint256 subPoint = _amount.mul(pool.newPerLP);
                 pool.allocPoint = pool.allocPoint.sub(subPoint);
                 totalAllocPoint = totalAllocPoint.sub(subPoint);
@@ -313,7 +305,6 @@ contract NewMineForNode is Ownable {
         emit EmergencyWithdraw(msg.sender, _pid, user.amount);
 
         if(pool.state) {
-            // 更新allocPoint和totalAllocPoint
             uint256 subPoint = user.amount.mul(pool.newPerLP);
             pool.allocPoint = pool.allocPoint.sub(subPoint);
             totalAllocPoint = totalAllocPoint.sub(subPoint);

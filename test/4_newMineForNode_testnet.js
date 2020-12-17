@@ -15,26 +15,28 @@ contract('NewMineForNode testnet', ([alice, bob, carol, dev, minter]) => {
     });
 
     it('test', async () => {
-        // 0x82f9d6996A879E2D3A45f6045191f5Df89bF3aEE 部署了100个pools   但没有new～
-        this.newMine = await NewMineForNode.at('0x82f9d6996A879E2D3A45f6045191f5Df89bF3aEE');
+        // 0x6117Db46a12f11fF7f97078e754c8337ba4D1EB3 部署200个pools    放100wnew
+        this.newMine = await NewMineForNode.at('0x6117Db46a12f11fF7f97078e754c8337ba4D1EB3');
         console.log("newMine:"+this.newMine.address)
+
         // await this.wnewToken1.approve(this.newMine.address, web3.utils.toWei('100000000000', 'ether'), { from: bob });
         // await this.wnewToken2.approve(this.newMine.address, web3.utils.toWei('100000000000', 'ether'), { from: bob });
-
         // await this.newMine.addPool(this.wnewToken1.address, {from: bob});
         // var temp = await this.newMine.deposit(0, '1', { from: bob });
         // console.log("0 deposit:"+ (parseInt(temp.receipt.gasUsed) * 500000000000000)/1e18)
 
-        // for(i=80;i<100;i++){
+        // for(i=180;i<200;i++){
         //     await this.newMine.addPool(this.wnewToken2.address, {from: bob});
         //     var temp = await this.newMine.deposit(i, '1', { from: bob });
         //     console.log(i + "for deposit:"+ (parseInt(temp.receipt.gasUsed) * 500000000000000)/1e18)
         // }
 
+        // var temp = await this.newMine.deposit(1, '1', { from: bob }); //合约没有new回报错
+        // console.log("1 deposit:"+ (parseInt(temp.receipt.gasUsed) * 500000000000000)/1e18)
+
         console.log("poollength:"+await this.newMine.poolLength())
 
-        // var temp = await this.newMine.deposit(1, '1', { from: bob });
-        // console.log(temp)
+
 
         // for(i=2;i<10;i++){
         //     var temp = await this.newMine.withdraw(i, '1', { from: bob });
@@ -43,18 +45,25 @@ contract('NewMineForNode testnet', ([alice, bob, carol, dev, minter]) => {
     });
 
     it('get updateNewPerLPAll gas', async () => {
+        // var tx = await this.newMine.updateNewPerLP(0); 
+        // console.log(tx)
+        // console.log(tx.logs)
+        // var receipt = await web3.eth.getTransaction(tx.tx);
+        // console.log(receipt)
+        // console.log(tx.receipt.gasUsed)
+        // var used = parseInt(tx.receipt.gasUsed) * 500000000000000;
+        // console.log(used/1e18)
+
+
         var tx = await this.newMine.updateNewPerLPAll(); 
         console.log(tx)
         console.log(tx.logs)
-    
         var receipt = await web3.eth.getTransaction(tx.tx);
         console.log(receipt)
         console.log(tx.receipt.gasUsed)
         var used = parseInt(tx.receipt.gasUsed) * 500000000000000;
         console.log(used/1e18)
     });
-
-
 
     // it('add pool', async () => {
     //     const number = await web3.eth.getBlockNumber();

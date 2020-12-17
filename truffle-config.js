@@ -95,6 +95,7 @@ module.exports = {
         return new HDWalletProvider(testnet_mnemonic, 'https://rpc2.newchain.cloud.diynova.com', "testnet", 0, 5)
       },
       network_id: "1007", // newchain testnet id
+      gas: 67000000,
       gasPrice: 500000000000000 // 50w gwei
     },
     devnet: {

@@ -103,6 +103,37 @@ contract('NewMineForNode', ([alice, bob, carol, dev, minter]) => {
             await this.wnewToken2.transfer(bob, '1000', { from: minter });
             await this.wnewToken2.transfer(carol, '1000', { from: minter });
         });
+ 
+        it('should allow maintainer and only maintainer to addPool', async () => {
+            const number = await web3.eth.getBlockNumber()
+            const startBlock = number+10;
+            // 1000 per block farming rate starting at startBlock with bonus until block startBlock+1000
+            this.newMine = await NewMineForNode.new(this.wnew.address, '1000', startBlock, startBlock+1000, dev, {from: alice});            
+            await expectRevert(this.newMine.addPool(this.wnewToken1.address, {from: alice}),'onlyMaintainer: caller is not the maintainer');
+            await this.newMine.addPool(this.wnewToken1.address, {from: dev});
+            assert.equal((await this.newMine.poolLength()).valueOf(), 1);
+            var pool = await this.newMine.poolInfo(0);
+            assert.equal(pool.lpToken, this.wnewToken1.address);
+            assert.equal(pool.allocPoint, 0);
+            assert.equal(pool.lastRewardBlock, startBlock);
+            assert.equal(pool.accNewPerShare, 0);
+            assert.equal(pool.newPerLP/1e12, 1);
+            assert.equal(pool.state, true);
+
+            await this.wnewToken1.approve(this.newMine.address, '1000', { from: bob });
+            await this.newMine.deposit(0, '100', { from: bob });
+            assert.equal((await this.wnewToken1.balanceOf(bob)).valueOf(), '900');
+            pool = await this.newMine.poolInfo(0);
+            assert.equal(pool.allocPoint/1e12, 100);
+            assert.equal((await this.newMine.totalAllocPoint())/1e12, 100);
+            
+            await expectRevert(this.newMine.setPoolState(0, false, true, {from: alice}),'onlyMaintainer: caller is not the maintainer');
+            await this.newMine.setPoolState(0, false, true, {from: dev});
+            var pool = await this.newMine.poolInfo(0);
+            assert.equal(pool.allocPoint, 0);
+            assert.equal(pool.state, false);
+            assert.equal((await this.newMine.totalAllocPoint()), 0);
+        })
 
         it('should allow emergency withdraw', async () => {
             const startBlock = (await web3.eth.getBlockNumber()) + 100;
@@ -273,45 +304,39 @@ contract('NewMineForNode', ([alice, bob, carol, dev, minter]) => {
             assert.equal((await this.wnewToken1.balanceOf(carol)).valueOf(), '1000');
         });
 
-        // it('should give proper News allocation to each pool', async () => {
-        //     const number = await web3.eth.getBlockNumber();
-        //     const startBlock = number + 100;
-        //     // 1 per block farming rate starting at startBlock with bonus until block startBlock+1000
-        //     this.newMine = await NewMineForNode.new(this.wnew.address, web3.utils.toWei('1', 'ether'), startBlock, startBlock+1000, {from: alice});
-        //     await this.newMine.send(web3.utils.toWei('10', 'ether'), {from: alice})
-        //     const newMineBalance = 10
-        //     assert.equal((await web3.eth.getBalance(this.newMine.address))/1e18, newMineBalance);
+        it('should not distribute News if pool state false', async () => {
+            const number = await web3.eth.getBlockNumber();
+            const startBlock = number;
+            // 0.1 new per block farming rate starting at startBlock with bonus until block startBlock+1000
+            this.newMine = await NewMineForNode.new(this.wnew.address, web3.utils.toWei('0.1', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
+            await this.newMine.send(web3.utils.toWei('5', 'ether'), {from: minter})
+            const newMineBalance = web3.utils.toWei('5', 'ether')    
+            assert.equal((await web3.eth.getBalance(this.newMine.address)).valueOf(), newMineBalance);
+            await this.newMine.addPool(this.wnewToken1.address, {from: dev});
+           
+            await this.wnewToken1.approve(this.newMine.address, '1000', { from: alice });
+            // Alice deposits 10 LPs at block number+ 90
+            await time.advanceBlockTo(number + 89);
+            await this.newMine.deposit(0, '10', { from: alice });
+            const aliceBalance = parseInt((await web3.eth.getBalance(alice)));
 
-        //     await this.wnewToken1.approve(this.newMine.address, '1000', { from: alice });
-        //     await this.wnewToken2.approve(this.newMine.address, '1000', { from: bob });
-        //     // Add first LP to the pool with allocation 1
-        //     await this.newMine.addPool(this.wnewToken1.address);
-        //     // Alice deposits 10 LPs at block number+110
-        //     await time.advanceBlockTo(number+109);
-        //     await this.newMine.deposit(0, '5', { from: alice });
-        //     // Add LP2 to the pool with allocation 2 at block number+120
-        //     await time.advanceBlockTo(number+119);
-        //     await this.newMine.addPool(this.wnewToken2.address);
-        //     // Alice should have 10*1000 pending reward
-        //     assert.equal((await this.newMine.pendingXNew(0, alice)).valueOf(), '10000');
-        //     // Bob deposits 10 LP2s at block number+125
-        //     await time.advanceBlockTo(number+124);
-        //     await this.newMine.deposit(1, '10', { from: bob });
-        //     // Alice should have 10000 + 5*1000 = 15000 pending reward    因为此时bob刚存入，所以xnew还是全部归alice
-        //     assert.equal((await this.newMine.pendingXNew(0, alice)).valueOf(), '15000');
-        //     await time.advanceBlockTo(number+130);
-        //     // At block 130. Bob should get 5*2/3*1000 = 3333. Alice should get 15000+5*1/3*1000=16666.  wnewToken1和wnewToken2背后lP代表的new数量一致，所以对比数量就行
-        //     assert.equal((await this.newMine.pendingXNew(0, alice)).valueOf(), '16666');
-        //     assert.equal((await this.newMine.pendingXNew(1, bob)).valueOf(), '3333');
+            // At block number+100, set pool state to false,she should have 10*0.1 = 1 pending.
+            await time.advanceBlockTo(number + 98);
+            await expectRevert(this.newMine.setPoolState(0, false, true, {from: alice}),'onlyMaintainer: caller is not the maintainer');
+            await this.newMine.setPoolState(0, false, true, {from: dev});
+            assert.equal((await this.newMine.pendingNew(0, alice))/1e18, '1');
+            await time.advanceBlockTo(number + 110);
+            assert.equal((await this.newMine.pendingNew(0, alice))/1e18, '1');
+            // At block number+120, set pool state to true
+            await time.advanceBlockTo(number + 118);
+            await expectRevert(this.newMine.setPoolState(0, false, true, {from: dev}),'setPoolState: state is not changed');
+            await this.newMine.setPoolState(0, true, true, {from: dev});
+            // At block number+125, she should have 1 + 5*0.1 = 1.5 pending.
+            await time.advanceBlockTo(number + 125);
+            assert.equal((await this.newMine.pendingNew(0, alice))/1e18, '1.5');
+        });
 
-        //     const pool = await this.newMine.poolInfo(0);
-        //     assert.equal(pool.allocPoint/1e12, 5);
-        //     const pool2 = await this.newMine.poolInfo(1);
-        //     assert.equal(pool2.allocPoint/1e12, 10);
-        //     assert.equal((await this.newMine.totalAllocPoint())/1e12, 15);
-        // });
-
-        it('should stop giving bonus xNews after the period ends', async () => {
+        it('should stop giving bonus News after the period ends', async () => {
             const number = await web3.eth.getBlockNumber();
             const startBlock = number + 100;
             const endBlock = number + 200;
@@ -334,7 +359,7 @@ contract('NewMineForNode', ([alice, bob, carol, dev, minter]) => {
             const aliceTX = await this.newMine.deposit(0, '0', { from: alice });
             var aliceTXUsed = parseInt(aliceTX.receipt.gasUsed) * 20000000000;
             assert.equal((await this.newMine.newSupply())/1e18, '1');       
-            assert.equal(parseInt((parseInt(await web3.eth.getBalance(alice))+aliceTXUsed-aliceBalance)/1e18), '1');
+            assert.equal(parseInt((Number(await web3.eth.getBalance(alice))+aliceTXUsed-aliceBalance)/1e18), '1');
             assert.equal(((newMineBalance - parseInt((await web3.eth.getBalance(this.newMine.address))))/1e18), 1);
 
             await this.newMine.withdraw(0, '9', { from: alice });
@@ -350,10 +375,57 @@ contract('NewMineForNode', ([alice, bob, carol, dev, minter]) => {
             assert.equal((await this.newMine.pendingNew(0, alice))/1e18, '1');
         });
 
-        // TODO 测试LP被废弃和重启  同mining-core
-        // TODO setPoolState 测试节点废弃无收益
-        // TODO newPerLP是否计算正确
-        // TODO 测试swap交易后，LP代表的new变化引起收益不一致
-        // TODO 测试100+的lp，并且都有存款，更新一个lpprice需要的消耗，以及用户存/取的费用消耗    以及奖励分配情况
+        it('should give proper News allocation to each pool after updateNewPerLP', async () => {
+            const number = await web3.eth.getBlockNumber();
+            const startBlock = number + 100;
+            // 1000 new per block farming rate starting at startBlock with bonus until block startBlock+1000
+            this.newMine = await NewMineForNode.new(this.wnew.address, '1000', startBlock, startBlock+1000, dev, {from: alice});
+            await this.newMine.addPool(this.wnewToken1.address, {from: dev});
+            await this.newMine.addPool(this.wnewToken2.address, {from: dev});
+            await this.wnewToken1.approve(this.newMine.address, '1000', { from: alice });
+            await this.wnewToken2.approve(this.newMine.address, '1000', { from: bob });
+
+            var wnewToken1Pool = await this.newMine.poolInfo(0);
+            var wnewToken2Pool = await this.newMine.poolInfo(1);
+            assert.equal(wnewToken1Pool.newPerLP/1e12, 1);
+            assert.equal(wnewToken2Pool.newPerLP/1e12, 1);
+
+            // Alice deposits 10 wnewToken1 at block number+110
+            await time.advanceBlockTo(number+109);
+            await this.newMine.deposit(0, '20', { from: alice }); // number+110
+            // Bob deposits 20 wnewToken1 at block number+114
+            await time.advanceBlockTo(number+113);
+            await this.newMine.deposit(1, '10', { from: bob }); // number+114
+
+            // Fake some revenue
+            await this.wnew.transfer(this.wnewToken2.address, '10000000', { from: minter });
+            await this.token2.transfer(this.wnewToken2.address, '0', { from: minter });
+            await this.wnewToken2.sync();
+            const newPerLPPool1 = await this.newMine.getNewPerLP(wnewToken1Pool.lpToken);
+            const newPerLPPool2 = await this.newMine.getNewPerLP(wnewToken2Pool.lpToken);
+            assert.equal(newPerLPPool1/1e12, 1);
+            assert.equal(newPerLPPool2/1e12, 2);
+
+            await time.advanceBlockTo(number+120);
+            // Alice should have: 4*1000 + 6*2/3*1000 = 80000
+            assert.equal((await this.newMine.pendingNew(0, alice)), '8000');
+            // Bob should have: 6*1/3*1000 = 2000
+            assert.equal((await this.newMine.pendingNew(1, bob)), '2000');
+            
+            // At block number+126, update LP token price against NEW
+            await time.advanceBlockTo(number+125);
+            await this.newMine.updateNewPerLPAll(); // number+126
+            // Alice should have: 8000 + 6*2/3*1000 = 120000
+            assert.equal((await this.newMine.pendingNew(0, alice)), '12000');
+            // Bob should have: 20000 + 6*1/3*1000 = 4000
+            assert.equal((await this.newMine.pendingNew(1, bob)), '4000');
+            
+            // At block number+136, use lastest LP token price
+            await time.advanceBlockTo(number+136);
+            // Alice should have: 12000 + 10*1/2*1000 = 170000
+            assert.equal((await this.newMine.pendingNew(0, alice)), '17000');
+            // Bob should have: 4000 + 10*1/2*1000 = 9000
+            assert.equal((await this.newMine.pendingNew(1, bob)), '9000');
+        });
     });
 });

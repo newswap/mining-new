@@ -115,7 +115,6 @@ contract NewMineSingle is Ownable {
     //       function for Miner                      //
     ///////////////////////////////////////////////////
 
-    // 收割new用这个函数或withdraw，_amount=0即可
     // Deposit LP tokens to NewMine for NEW allocation.
     function deposit(uint256 _amount) public {
         UserInfo storage user = userInfo[msg.sender];
@@ -135,7 +134,6 @@ contract NewMineSingle is Ownable {
         emit Deposit(msg.sender, _amount);        
     }
 
-    // 收割new用这个函数或deposit，_amount=0即可
     // Withdraw LP tokens from NewMine.
     function withdraw(uint256 _amount) public {
         UserInfo storage user = userInfo[msg.sender];
