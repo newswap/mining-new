@@ -2,6 +2,7 @@ const { expectRevert, time } = require('@openzeppelin/test-helpers');
 const { web3 } = require('@openzeppelin/test-helpers/src/setup');
 const MockERC20 = artifacts.require('MockERC20');
 const NewMineForNode = artifacts.require("NewMineForNode");
+const NewMineForNodeV2 = artifacts.require("NewMineForNodeV2")
 const UniswapV2Pair = artifacts.require('UniswapV2Pair');
 const UniswapV2Factory = artifacts.require('UniswapV2Factory');
 
@@ -14,18 +15,48 @@ contract('NewMineForNode testnet', ([alice, bob, carol, dev, minter]) => {
         this.wnewToken2 = await UniswapV2Pair.at('0xdda2c1d6237dab9351af93e1f3f81047f897e45b');          
     });
 
-    it('test', async () => {
-        // 0x6117Db46a12f11fF7f97078e754c8337ba4D1EB3 部署200个pools    放100wnew
-        this.newMine = await NewMineForNode.at('0x6117Db46a12f11fF7f97078e754c8337ba4D1EB3');
+    // it('test node', async () => {
+    //     // 0x6117Db46a12f11fF7f97078e754c8337ba4D1EB3 部署200个pools    放100wnew
+    //     this.newMine = await NewMineForNode.at('0x6117Db46a12f11fF7f97078e754c8337ba4D1EB3');
+    //     console.log("newMine:"+this.newMine.address)
+
+    //     // await this.wnewToken1.approve(this.newMine.address, web3.utils.toWei('100000000000', 'ether'), { from: bob });
+    //     // await this.wnewToken2.approve(this.newMine.address, web3.utils.toWei('100000000000', 'ether'), { from: bob });
+    //     // await this.newMine.addPool(this.wnewToken1.address, {from: bob});
+    //     // var temp = await this.newMine.deposit(0, '1', { from: bob });
+    //     // console.log("0 deposit:"+ (parseInt(temp.receipt.gasUsed) * 500000000000000)/1e18)
+
+    //     // for(i=180;i<200;i++){
+    //     //     await this.newMine.addPool(this.wnewToken2.address, {from: bob});
+    //     //     var temp = await this.newMine.deposit(i, '1', { from: bob });
+    //     //     console.log(i + "for deposit:"+ (parseInt(temp.receipt.gasUsed) * 500000000000000)/1e18)
+    //     // }
+
+    //     // var temp = await this.newMine.deposit(1, '1', { from: bob }); //合约没有new回报错
+    //     // console.log("1 deposit:"+ (parseInt(temp.receipt.gasUsed) * 500000000000000)/1e18)
+
+    //     console.log("poollength:"+await this.newMine.poolLength())
+
+
+
+    //     // for(i=2;i<10;i++){
+    //     //     var temp = await this.newMine.withdraw(i, '1', { from: bob });
+    //     //     console.log(i + "for withdraw:"+parseInt(temp.receipt.gasUsed))
+    //     // }
+    // });
+
+
+    it('test node2', async () => {
+        //  部署100个pools    放100w new
+        this.newMine = await NewMineForNodeV2.at('0x50ea3D34b684edf578c377f68D25D3379D3c734a');
         console.log("newMine:"+this.newMine.address)
 
         // await this.wnewToken1.approve(this.newMine.address, web3.utils.toWei('100000000000', 'ether'), { from: bob });
         // await this.wnewToken2.approve(this.newMine.address, web3.utils.toWei('100000000000', 'ether'), { from: bob });
-        // await this.newMine.addPool(this.wnewToken1.address, {from: bob});
         // var temp = await this.newMine.deposit(0, '1', { from: bob });
         // console.log("0 deposit:"+ (parseInt(temp.receipt.gasUsed) * 500000000000000)/1e18)
 
-        // for(i=180;i<200;i++){
+        // for(i=91;i<100;i++){
         //     await this.newMine.addPool(this.wnewToken2.address, {from: bob});
         //     var temp = await this.newMine.deposit(i, '1', { from: bob });
         //     console.log(i + "for deposit:"+ (parseInt(temp.receipt.gasUsed) * 500000000000000)/1e18)
@@ -38,32 +69,59 @@ contract('NewMineForNode testnet', ([alice, bob, carol, dev, minter]) => {
 
 
 
-        // for(i=2;i<10;i++){
-        //     var temp = await this.newMine.withdraw(i, '1', { from: bob });
-        //     console.log(i + "for withdraw:"+parseInt(temp.receipt.gasUsed))
-        // }
+    //     // for(i=2;i<10;i++){
+    //     //     var temp = await this.newMine.withdraw(i, '1', { from: bob });
+    //     //     console.log(i + "for withdraw:"+parseInt(temp.receipt.gasUsed))
+    //     // }
     });
 
-    it('get updateNewPerLPAll gas', async () => {
-        // var tx = await this.newMine.updateNewPerLP(0); 
-        // console.log(tx)
-        // console.log(tx.logs)
-        // var receipt = await web3.eth.getTransaction(tx.tx);
-        // console.log(receipt)
-        // console.log(tx.receipt.gasUsed)
-        // var used = parseInt(tx.receipt.gasUsed) * 500000000000000;
-        // console.log(used/1e18)
+
+    // it('get updateNewPerLPAll gas', async () => {
+    //     var tx = await this.newMine.updateNewPerLP(0); 
+    //     // console.log(tx)
+    //     // console.log(tx.logs)
+    //     // var receipt = await web3.eth.getTransaction(tx.tx);
+    //     // console.log(receipt)
+    //     // console.log(tx.receipt.gasUsed)
+    //     var used = parseInt(tx.receipt.gasUsed) * 500000000000000;
+    //     console.log("0 updateNewPerLP:"+used/1e18)
+
+    //     var tx = await this.newMine.updateNewPerLPAll(); 
+    //     // console.log(tx)
+    //     // console.log(tx.logs)
+    //     // var receipt = await web3.eth.getTransaction(tx.tx);
+    //     // console.log(receipt)
+    //     // console.log(tx.receipt.gasUsed)
+    //     var used = parseInt(tx.receipt.gasUsed) * 500000000000000;
+    //     console.log("updateNewPerLPAll:"+used/1e18)
+    // });
 
 
-        var tx = await this.newMine.updateNewPerLPAll(); 
-        console.log(tx)
-        console.log(tx.logs)
-        var receipt = await web3.eth.getTransaction(tx.tx);
-        console.log(receipt)
-        console.log(tx.receipt.gasUsed)
-        var used = parseInt(tx.receipt.gasUsed) * 500000000000000;
-        console.log(used/1e18)
-    });
+    // it('show used gas for setPoolState', async () => {
+    //     var tx = await this.newMine.setPoolState(0, false, {from: bob}); 
+    //     console.log("0 setPoolState false:"+(parseInt(tx.receipt.gasUsed) * 500000000000000)/1e18)
+
+    //     tx = await this.newMine.setPoolState(0, true, {from: bob}); 
+    //     console.log("0 setPoolState true:"+(parseInt(tx.receipt.gasUsed) * 500000000000000)/1e18)
+    // });
+
+    // it('show used gas for activate', async () => {
+    //     const number = await web3.eth.getBlockNumber();
+    //     const newPerBlock = web3.utils.toWei("1", 'ether');
+    //     const oneYearBlock = 365*24*60*20; //挖一年 
+
+    //     var tx = await this.newMine.activate(number+oneYearBlock, newPerBlock, true); 
+    //     var used = parseInt(tx.receipt.gasUsed) * 500000000000000;
+    //     console.log("activate:"+used/1e18)
+    // });
+
+
+
+
+
+
+
+
 
     // it('add pool', async () => {
     //     const number = await web3.eth.getBlockNumber();
@@ -209,28 +267,6 @@ contract('NewMineForNode testnet', ([alice, bob, carol, dev, minter]) => {
     //     }
     // });
 
-    // it('show used gas for setPoolState', async () => {
-    //     const number = await web3.eth.getBlockNumber();
-    //     await time.advanceBlockTo(number+10)
-
-    //     var temp = await this.newMine.setPoolState(0, false, true, {from: dev}); 
-    //     console.log("0 setPoolState false:"+parseInt(temp.receipt.gasUsed))
-    //     temp = await this.newMine.setPoolState(0, true, true, {from: dev}); 
-    //     console.log("0 setPoolState true:"+parseInt(temp.receipt.gasUsed))
-        
-    //     if(parseInt(await this.newMine.poolLength()) > 1) {
-    //         var temp = await this.newMine.setPoolState(1, false, true, {from: dev}); 
-    //         console.log("1 setPoolState false:"+parseInt(temp.receipt.gasUsed))
-    //         temp = await this.newMine.setPoolState(1, true, true, {from: dev}); 
-    //         console.log("1 setPoolState true:"+parseInt(temp.receipt.gasUsed))   
-    //     }
-    // });
-
-    // it('show used gas for activate', async () => {
-    //     const number = await web3.eth.getBlockNumber();
-
-    //     var temp = await this.newMine.activate(number+10000, 100, true); 
-    //     console.log("activate:"+parseInt(temp.receipt.gasUsed))
-    // });
+ 
 
 });
