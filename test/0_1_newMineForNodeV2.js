@@ -359,6 +359,7 @@ contract('NewMineForNodeV2', ([alice, bob, carol, dev, minter]) => {
             const aliceTX = await this.newMine.deposit(0, '0', { from: alice });
             var aliceTXUsed = parseInt(aliceTX.receipt.gasUsed) * 20000000000;
             assert.equal((await this.newMine.newSupply())/1e18, '1');       
+            console.log(Number(await web3.eth.getBalance(alice))+aliceTXUsed-aliceBalance)
             assert.equal(parseInt((Number(await web3.eth.getBalance(alice))+aliceTXUsed-aliceBalance)/1e18), '1');
             assert.equal(((newMineBalance - parseInt((await web3.eth.getBalance(this.newMine.address))))/1e18), 1);
 

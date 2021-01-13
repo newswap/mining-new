@@ -119,18 +119,18 @@ contract NewMineSingle is Ownable {
     function deposit(uint256 _amount) public {
         UserInfo storage user = userInfo[msg.sender];
         updatePool();
-        if (user.amount > 0) {
-            uint256 pending = user.amount.mul(accNewPerShare).div(1e12).sub(user.rewardDebt);
-            if(pending > 0) {
-                Address.sendValue(msg.sender, pending);
-            }
-        }
+
+        uint256 pending = user.amount.mul(accNewPerShare).div(1e12).sub(user.rewardDebt);
 
         if(_amount > 0) {
             lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
             user.amount = user.amount.add(_amount);
         }
+
         user.rewardDebt = user.amount.mul(accNewPerShare).div(1e12);
+        if(pending > 0) {
+            Address.sendValue(msg.sender, pending);
+        }
         emit Deposit(msg.sender, _amount);        
     }
 
@@ -139,15 +139,18 @@ contract NewMineSingle is Ownable {
         UserInfo storage user = userInfo[msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool();
+
         uint256 pending = user.amount.mul(accNewPerShare).div(1e12).sub(user.rewardDebt);
-        if(pending > 0) {
-            Address.sendValue(msg.sender, pending);
-        }
+
         if(_amount > 0) {
             user.amount = user.amount.sub(_amount);
             lpToken.safeTransfer(address(msg.sender), _amount);
         }
+        
         user.rewardDebt = user.amount.mul(accNewPerShare).div(1e12);
+        if(pending > 0) {
+            Address.sendValue(msg.sender, pending);
+        }
         emit Withdraw(msg.sender, _amount);
     }
 

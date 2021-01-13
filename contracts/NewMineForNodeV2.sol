@@ -263,12 +263,7 @@ contract NewMineForNodeV2 is Ownable {
         updateNewPerLP(_pid);
 
         // harvest new
-        if (user.amount > 0) {
-            uint256 pending = user.amount.mul(pool.accNewPerShare).div(1e12).sub(user.rewardDebt);       
-            if(pending > 0) {
-                Address.sendValue(msg.sender, pending);
-            }
-        }
+        uint256 pending = user.amount.mul(pool.accNewPerShare).div(1e12).sub(user.rewardDebt); 
 
         if(_amount > 0) {
             pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);           
@@ -281,7 +276,9 @@ contract NewMineForNodeV2 is Ownable {
 
         user.rewardDebt = user.amount.mul(pool.accNewPerShare).div(1e12);
         pool.rewardDebt = pool.lpAmount.mul(pool.newPerLP).mul(accNewPerShare).div(1e24);
-
+        if(pending > 0) {
+            Address.sendValue(msg.sender, pending);
+        }
         emit Deposit(msg.sender, _pid, _amount);        
     }
 
@@ -294,9 +291,6 @@ contract NewMineForNodeV2 is Ownable {
         updateNewPerLP(_pid);
         
         uint256 pending = user.amount.mul(pool.accNewPerShare).div(1e12).sub(user.rewardDebt);       
-        if(pending > 0) {
-            Address.sendValue(msg.sender, pending);
-        }
    
         if(_amount > 0) {
             user.amount = user.amount.sub(_amount);
@@ -309,8 +303,10 @@ contract NewMineForNodeV2 is Ownable {
 
         user.rewardDebt = user.amount.mul(pool.accNewPerShare).div(1e12);
         pool.rewardDebt = pool.lpAmount.mul(pool.newPerLP).mul(accNewPerShare).div(1e24);
-
-        emit Deposit(msg.sender, _pid, _amount);        
+        if(pending > 0) {
+            Address.sendValue(msg.sender, pending);
+        }
+        emit Withdraw(msg.sender, _pid, _amount);        
     }
 
     // Withdraw without caring about rewards. EMERGENCY ONLY.
@@ -323,7 +319,7 @@ contract NewMineForNodeV2 is Ownable {
         if(pool.state) {
             stakingNewSupply = stakingNewSupply.sub(user.amount.mul(pool.newPerLP).div(1e12));
             
-            // TODO 有点问题，如果 accNewPerShare很久没有更新了！！！那pool池子中的其他用户不就全部跟着倒霉了？？？？
+            // TODO    有点问题，如果 accNewPerShare很久没有更新了！！！那pool池子中的其他用户不就全部跟着倒霉了？？？？
             uint256 pending = pool.lpAmount.mul(pool.newPerLP).mul(accNewPerShare).div(1e24).sub(pool.rewardDebt);
             if(pending > 0) {
                 pool.accNewPerShare = pool.accNewPerShare.add(pending.mul(1e12).div(pool.lpAmount));

@@ -251,12 +251,8 @@ contract NewMineForNode is Ownable {
         // TODO 效率问题————每次用户存取都需要更新所有池子的奖励(顺便更新下lp价格)，因为pool.allocPoint将变化
         updateNewPerLP(_pid);
 
-        if (user.amount > 0) {
-            uint256 pending = user.amount.mul(pool.accNewPerShare).div(1e12).sub(user.rewardDebt);
-            if(pending > 0) {
-                Address.sendValue(msg.sender, pending);
-            }
-        }     
+        uint256 pending = user.amount.mul(pool.accNewPerShare).div(1e12).sub(user.rewardDebt);
+
         if(_amount > 0) {
             pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
             user.amount = user.amount.add(_amount);
@@ -266,7 +262,11 @@ contract NewMineForNode is Ownable {
                 totalAllocPoint = totalAllocPoint.add(addPoint);
             }
         }
+
         user.rewardDebt = user.amount.mul(pool.accNewPerShare).div(1e12);
+        if(pending > 0) {
+            Address.sendValue(msg.sender, pending);
+        }
         emit Deposit(msg.sender, _pid, _amount);        
     }
 
@@ -280,9 +280,7 @@ contract NewMineForNode is Ownable {
         updateNewPerLP(_pid);
 
         uint256 pending = user.amount.mul(pool.accNewPerShare).div(1e12).sub(user.rewardDebt);
-        if(pending > 0) {
-            Address.sendValue(msg.sender, pending);
-        }
+
         if(_amount > 0) {
             user.amount = user.amount.sub(_amount);
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
@@ -294,6 +292,9 @@ contract NewMineForNode is Ownable {
         }
 
         user.rewardDebt = user.amount.mul(pool.accNewPerShare).div(1e12);
+        if(pending > 0) {
+            Address.sendValue(msg.sender, pending);
+        }
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
