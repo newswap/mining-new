@@ -36,7 +36,7 @@ contract NewMineForNodeV2 is Ownable {
         IERC20 lpToken;      // Address of LP token contract.
         bool state;          // true-enable, false-disable
 
-        // lpAmount*newPerLP = newAmount
+        // lpAmount*newPerLP = newAmount, times 1e12
         uint256 lpAmount; 
         uint256 newPerLP; // LP token price against NEW, times 1e12  
         uint256 rewardDebt;
@@ -212,20 +212,26 @@ contract NewMineForNodeV2 is Ownable {
 
         uint256 length = poolInfo.length;
         for (uint256 pid = 0; pid < length; ++pid) {
-            PoolInfo storage pool = poolInfo[pid];
-            if(pool.state) {
-                stakingNewSupply = stakingNewSupply.sub(pool.lpAmount.mul(pool.newPerLP).div(1e12));        
-                pool.newPerLP = getNewPerLP(address(pool.lpToken));
-                stakingNewSupply = stakingNewSupply.add(pool.lpAmount.mul(pool.newPerLP).div(1e12));   
-                pool.rewardDebt = pool.lpAmount.mul(pool.newPerLP).mul(accNewPerShare).div(1e24);
-            }
+            _updateNewPerLP(pid);            
+        }
+    }
+
+    function updateNewPerLPMultiple(uint256[] calldata _pids) public {
+        massUpdatePools();
+
+        uint256 length = _pids.length;
+        for (uint256 i = 0; i < length; ++i) {
+            _updateNewPerLP(_pids[i]);            
         }
     }
 
     // update LP token price against NEW
     function updateNewPerLP(uint256 _pid) public {
         updatePool(_pid);
+        _updateNewPerLP(_pid);
+    }
 
+    function _updateNewPerLP(uint256 _pid) internal {
         PoolInfo storage pool = poolInfo[_pid];
         if(pool.state) {
             stakingNewSupply = stakingNewSupply.sub(pool.lpAmount.mul(pool.newPerLP).div(1e12));     
@@ -256,7 +262,7 @@ contract NewMineForNodeV2 is Ownable {
     ///////////////////////////////////////////////////
 
     // Deposit LP tokens to NewMine for NEW allocation.
-    function deposit(uint256 _pid, uint256 _amount) public payable {
+    function deposit(uint256 _pid, uint256 _amount) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender]; 
 
@@ -319,7 +325,6 @@ contract NewMineForNodeV2 is Ownable {
         if(pool.state) {
             stakingNewSupply = stakingNewSupply.sub(user.amount.mul(pool.newPerLP).div(1e12));
             
-            // TODO    有点问题，如果 accNewPerShare很久没有更新了！！！那pool池子中的其他用户不就全部跟着倒霉了？？？？
             uint256 pending = pool.lpAmount.mul(pool.newPerLP).mul(accNewPerShare).div(1e24).sub(pool.rewardDebt);
             if(pending > 0) {
                 pool.accNewPerShare = pool.accNewPerShare.add(pending.mul(1e12).div(pool.lpAmount));
