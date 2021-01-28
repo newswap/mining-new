@@ -57,10 +57,12 @@ contract NewMineSingle is Ownable {
         uint256 _startBlock,
         uint256 _endBlock
     ) public {
+        require(_startBlock >= block.number, 'Deploy: genesis too soon');
+        require(_endBlock > _startBlock, 'Deploy: endBlock must be greater than startBlock');
+
         lpToken = IERC20(_lpToken);
         newPerBlock = _newPerBlock;
-
-        lastRewardBlock = block.number > _startBlock ? block.number : _startBlock;
+        lastRewardBlock = _startBlock;
         endBlock = _endBlock;
     }
 
@@ -94,14 +96,14 @@ contract NewMineSingle is Ownable {
             return;
         }
 
-        uint256 newReward = getMultiplier(lastRewardBlock, block.number);
+        uint256 newReward = getReward(lastRewardBlock, block.number);
         newSupply = newSupply.add(newReward);
         accNewPerShare = accNewPerShare.add(newReward.mul(1e12).div(lpSupply));
         lastRewardBlock = block.number;
     }
 
-    // Return reward multiplier over the given _from to _to block.
-    function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
+    // Return reward over the given _from to _to block.
+    function getReward(uint256 _from, uint256 _to) public view returns (uint256) {
         if (_to <= endBlock) {
             return _to.sub(_from).mul(newPerBlock);
         } else if (_from >= endBlock) {
@@ -169,7 +171,7 @@ contract NewMineSingle is Ownable {
         uint256 accNew = accNewPerShare;
         uint256 lpSupply = lpToken.balanceOf(address(this));
         if (block.number > lastRewardBlock && lpSupply != 0) {
-            uint256 newReward = getMultiplier(lastRewardBlock, block.number);
+            uint256 newReward = getReward(lastRewardBlock, block.number);
             accNew = accNew.add(newReward.mul(1e12).div(lpSupply));
         }
         return user.amount.mul(accNew).div(1e12).sub(user.rewardDebt);

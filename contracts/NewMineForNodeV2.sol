@@ -169,7 +169,7 @@ contract NewMineForNodeV2 is Ownable {
         // update accNewPerShare
         if (block.number > lastRewardBlock) {
             if (stakingNewSupply != 0) {
-                uint256 newReward = getMultiplier(lastRewardBlock, block.number);
+                uint256 newReward = getReward(lastRewardBlock, block.number);
                 newSupply = newSupply.add(newReward);
                 accNewPerShare = accNewPerShare.add(newReward.mul(1e12).div(stakingNewSupply));
             }
@@ -189,8 +189,8 @@ contract NewMineForNodeV2 is Ownable {
         }
     }
 
-    // Return reward multiplier over the given _from to _to block.
-    function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
+    // Return reward over the given _from to _to block.
+    function getReward(uint256 _from, uint256 _to) public view returns (uint256) {
         if (_to <= endBlock) {
             return _to.sub(_from).mul(newPerBlock);
         } else if (_from >= endBlock) {
@@ -345,7 +345,7 @@ contract NewMineForNodeV2 is Ownable {
         // get lastest accNewPerShare
         uint256 _accNewPerShare = accNewPerShare;
         if (block.number > lastRewardBlock && stakingNewSupply != 0) {
-            uint256 newReward = getMultiplier(lastRewardBlock, block.number);
+            uint256 newReward = getReward(lastRewardBlock, block.number);
             _accNewPerShare = _accNewPerShare.add(newReward.mul(1e12).div(stakingNewSupply));
         }
  

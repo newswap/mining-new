@@ -167,7 +167,7 @@ contract NewMineForNode is Ownable {
             return;
         }
 
-        uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
+        uint256 multiplier = getReward(pool.lastRewardBlock, block.number);
         uint256 newReward = multiplier.mul(pool.allocPoint).div(totalAllocPoint);
         newSupply = newSupply.add(newReward);
         pool.accNewPerShare = pool.accNewPerShare.add(newReward.mul(1e12).div(lpSupply));
@@ -179,7 +179,7 @@ contract NewMineForNode is Ownable {
     }
 
     // Return reward multiplier over the given _from to _to block.
-    function getMultiplier(uint256 _from, uint256 _to) public view returns (uint256) {
+    function getReward(uint256 _from, uint256 _to) public view returns (uint256) {
         if (_to <= endBlock) {
             return _to.sub(_from).mul(newPerBlock);
         } else if (_from >= endBlock) {
@@ -322,7 +322,7 @@ contract NewMineForNode is Ownable {
         uint256 accNewPerShare = pool.accNewPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (pool.state && block.number > pool.lastRewardBlock && lpSupply != 0 && totalAllocPoint != 0) {
-            uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
+            uint256 multiplier = getReward(pool.lastRewardBlock, block.number);
             uint256 newReward = multiplier.mul(pool.allocPoint).div(totalAllocPoint);
             accNewPerShare = accNewPerShare.add(newReward.mul(1e12).div(lpSupply));
         }

@@ -8,7 +8,8 @@ module.exports = async function (deployer, network, accounts) {
   // const newPerBlock = web3.utils.toWei("1", 'ether');
   // const number = await web3.eth.getBlockNumber();
   // const startBlock = number + 200; // 10分钟后开启    
-  // const oneYearBlock = 365*24*60*20; //挖一年 
+  // // const oneYearBlock = 365*24*60*20; //挖一年 
+  // const oneYearBlock = 200; // 挖10分钟
   // // _lpToken, _newPerBlock, _startBlock, _endBlock
   // await deployer.deploy(NewMineSingle, lpToken, newPerBlock, startBlock, startBlock+oneYearBlock);
   // const newMineSingle = await NewMineSingle.deployed();
@@ -16,10 +17,17 @@ module.exports = async function (deployer, network, accounts) {
 
   // TODO 给newMine 转NEW
 
-  // TestNET
+  // dev
   // newMineSingle: 0x6b0070Ed4C588F86Deb07ca115EBd8AF4B30017e
+  // 测试网
+  // newMineSingle: 0x8b028f0F001417E3b9c086C5740722839DaB12b0
 
-
+  // const newMine = await NewMineSingle.at("0x8b028f0F001417E3b9c086C5740722839DaB12b0");
+  // console.log(await newMine.lpToken())
+  // console.log(await newMine.newPerBlock()/1e18)
+  // console.log(await newMine.lastRewardBlock())
+  // console.log(await newMine.endBlock())
+  // console.log(await newMine.owner())
 
   // 激活矿池
   // const newMine = await NewMineSingle.at("");
@@ -40,6 +48,7 @@ module.exports = async function (deployer, network, accounts) {
   // console.log(await web3.eth.getBalance('0x665d01B3757d530dC136942b94B16b27bf1d1c8b')/1e18)
 
 
-
+  // const pair = await IUniswapV2Pair.at("0x56ae975581a382193ff36579c81281e179486c43")
+  // console.log(await pair.balanceOf("0x8b028f0F001417E3b9c086C5740722839DaB12b0")/1e18)
 };
 
