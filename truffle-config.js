@@ -110,7 +110,7 @@ module.exports = {
         return new HDWalletProvider("", 'https://cn.rpc.mainnet.diynova.com', "mainnet", 0, 5)
       },
       network_id: "1012", // newchain mainnet id
-      gasPrice: 500000000000000  // 50w gwei             
+      gasPrice: 0  // 50w gwei             
     }
   },
 
@@ -129,8 +129,8 @@ module.exports = {
         optimizer: {
             enabled: true,
             runs: 999999
-        }
-        // "evmVersion": "istanbul"
+        },
+        "evmVersion": "istanbul"
       }
     }
   }

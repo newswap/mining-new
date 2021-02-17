@@ -1,12 +1,11 @@
 const { expectRevert, time } = require('@openzeppelin/test-helpers');
 const { web3 } = require('@openzeppelin/test-helpers/src/setup');
 const MockERC20 = artifacts.require('MockERC20');
-const NewMineForNode = artifacts.require("NewMineForNode");
-const NewMineForNodeV2 = artifacts.require("NewMineForNodeV2")
+const NewMineForCommunity = artifacts.require("NewMineForCommunity")
 const UniswapV2Pair = artifacts.require('UniswapV2Pair');
 const UniswapV2Factory = artifacts.require('UniswapV2Factory');
 
-contract('NewMineForNode testnet', ([alice, bob, carol, dev, minter]) => {
+contract('NewMineForCommunity testnet', ([alice, bob, carol, dev, minter]) => {
     it('init pair', async () => {    
         this.wnew = "0xf4905b9bc02ce21c98eac1803693a9357d5253bf" // test/main
         // IMX_NEW testnet
@@ -17,7 +16,7 @@ contract('NewMineForNode testnet', ([alice, bob, carol, dev, minter]) => {
 
     // it('test node', async () => {
     //     // 0x6117Db46a12f11fF7f97078e754c8337ba4D1EB3 部署200个pools    放100wnew
-    //     this.newMine = await NewMineForNode.at('0x6117Db46a12f11fF7f97078e754c8337ba4D1EB3');
+    //     this.newMine = await NewMineForCommunity.at('0x6117Db46a12f11fF7f97078e754c8337ba4D1EB3');
     //     console.log("newMine:"+this.newMine.address)
 
     //     // await this.wnewToken1.approve(this.newMine.address, web3.utils.toWei('100000000000', 'ether'), { from: bob });
@@ -48,7 +47,7 @@ contract('NewMineForNode testnet', ([alice, bob, carol, dev, minter]) => {
 
     it('test node2', async () => {
         //  部署100个pools    放100w new
-        this.newMine = await NewMineForNodeV2.at('0x50ea3D34b684edf578c377f68D25D3379D3c734a');
+        this.newMine = await NewMineForCommunity.at('0x50ea3D34b684edf578c377f68D25D3379D3c734a');
         console.log("newMine:"+this.newMine.address)
 
         // await this.wnewToken1.approve(this.newMine.address, web3.utils.toWei('100000000000', 'ether'), { from: bob });
@@ -126,7 +125,7 @@ contract('NewMineForNode testnet', ([alice, bob, carol, dev, minter]) => {
     // it('add pool', async () => {
     //     const number = await web3.eth.getBlockNumber();
     //     const startBlock = number;
-    //     this.newMine = await NewMineForNode.new(this.wnew, web3.utils.toWei('1', 'ether'), startBlock, startBlock+10000, alice, {from: alice});
+    //     this.newMine = await NewMineForCommunity.new(this.wnew, web3.utils.toWei('1', 'ether'), startBlock, startBlock+10000, alice, {from: alice});
     //     console.log("newMine:"+this.newMine.address)
 
     //     await this.newMine.send(web3.utils.toWei('10000', 'ether'), {from: alice})

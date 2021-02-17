@@ -1,7 +1,7 @@
 const { expectRevert, time } = require('@openzeppelin/test-helpers');
 const { web3 } = require('@openzeppelin/test-helpers/src/setup');
 const MockERC20 = artifacts.require('MockERC20');
-const NewMineForNode = artifacts.require("NewMineForNode");
+const NewMineForCommunity = artifacts.require("NewMineForCommunity");
 const NewMineSingle = artifacts.require("NewMineSingle");
 const UniswapV2Pair = artifacts.require('UniswapV2Pair');
 const UniswapV2Factory = artifacts.require('UniswapV2Factory');
@@ -34,7 +34,7 @@ contract('Temp', ([alice, bob, carol, dev, minter]) => {
         // const number = await web3.eth.getBlockNumber();
         // const startBlock = number + 100;
         // // 1 per block farming rate starting at startBlock with bonus until block startBlock+1000
-        // this.newMine = await NewMineForNode.new(this.wnew.address, web3.utils.toWei('0.01', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
+        // this.newMine = await NewMineForCommunity.new(this.wnew.address, web3.utils.toWei('0.01', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
         // await this.newMine.send(web3.utils.toWei('1', 'ether'), {from: alice})
         // const newMineBalance = 1
         // assert.equal((await web3.eth.getBalance(this.newMine.address))/1e18, newMineBalance);

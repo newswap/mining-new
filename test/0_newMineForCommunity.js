@@ -1,11 +1,11 @@
 const { expectRevert, time } = require('@openzeppelin/test-helpers');
 const { web3 } = require('@openzeppelin/test-helpers/src/setup');
 const MockERC20 = artifacts.require('MockERC20');
-const NewMineForNode = artifacts.require("NewMineForNode");
+const NewMineForCommunity = artifacts.require("NewMineForCommunity");
 const UniswapV2Pair = artifacts.require('UniswapV2Pair');
 const UniswapV2Factory = artifacts.require('UniswapV2Factory');
 
-contract('NewMineForNode', ([alice, bob, carol, dev, minter]) => {
+contract('NewMineForCommunity', ([alice, bob, carol, dev, minter]) => {
     beforeEach(async () => {
         // const number = await time.latestBlock(); // string
         // console.log("number:"+ number)  
@@ -20,19 +20,19 @@ contract('NewMineForNode', ([alice, bob, carol, dev, minter]) => {
         const newPerBlock = web3.utils.toWei("10", 'ether');
         const number = await web3.eth.getBlockNumber();
         // const startBlock = number + 600; // 30分钟后开启
-        const startBlock = number; // 直接开挖
+        const startBlock = number+10; 
         const oneYearBlock = 365*24*60*20; //挖一年
-        this.newMine = await NewMineForNode.new(wnew, newPerBlock, startBlock, startBlock+oneYearBlock, dev,{from: alice});
+        this.newMine = await NewMineForCommunity.new(wnew, newPerBlock, startBlock, startBlock+oneYearBlock, dev,{from: alice});
         const getWNew = await this.newMine.wNew();
         const getNewPerBlock = await this.newMine.newPerBlock();
-        const getStartBlock = await this.newMine.startBlock();
+        const getLastRewardBlock = await this.newMine.lastRewardBlock();
         const getEndBlock = await this.newMine.endBlock();
         const newMineOwner = await this.newMine.owner();
         const maintainer = await this.newMine.maintainer(); 
 
         assert.equal(getWNew, wnew);
         assert.equal(getNewPerBlock.valueOf(), newPerBlock);
-        assert.equal(getStartBlock.valueOf(), startBlock);
+        assert.equal(getLastRewardBlock.valueOf(), startBlock);
         assert.equal(getEndBlock.valueOf(), startBlock+oneYearBlock);
         assert.equal(newMineOwner, alice);
         assert.equal(maintainer, dev);
@@ -108,66 +108,66 @@ contract('NewMineForNode', ([alice, bob, carol, dev, minter]) => {
             const number = await web3.eth.getBlockNumber()
             const startBlock = number+10;
             // 1000 per block farming rate starting at startBlock with bonus until block startBlock+1000
-            this.newMine = await NewMineForNode.new(this.wnew.address, '1000', startBlock, startBlock+1000, dev, {from: alice});            
+            this.newMine = await NewMineForCommunity.new(this.wnew.address, '1000', startBlock, startBlock+1000, dev, {from: alice});            
             await expectRevert(this.newMine.addPool(this.wnewToken1.address, {from: alice}),'onlyMaintainer: caller is not the maintainer');
             await this.newMine.addPool(this.wnewToken1.address, {from: dev});
             assert.equal((await this.newMine.poolLength()).valueOf(), 1);
             var pool = await this.newMine.poolInfo(0);
             assert.equal(pool.lpToken, this.wnewToken1.address);
-            assert.equal(pool.allocPoint, 0);
-            assert.equal(pool.lastRewardBlock, startBlock);
-            assert.equal(pool.accNewPerShare, 0);
-            assert.equal(pool.newPerLP/1e12, 1);
             assert.equal(pool.state, true);
+            assert.equal(pool.lpAmount, 0);
+            assert.equal(pool.newPerLP/1e12, 1);
+            assert.equal(pool.rewardDebt, 0);
+            assert.equal(pool.accNewPerShare, 0);
 
             await this.wnewToken1.approve(this.newMine.address, '1000', { from: bob });
             await this.newMine.deposit(0, '100', { from: bob });
             assert.equal((await this.wnewToken1.balanceOf(bob)).valueOf(), '900');
             pool = await this.newMine.poolInfo(0);
-            assert.equal(pool.allocPoint/1e12, 100);
-            assert.equal((await this.newMine.totalAllocPoint())/1e12, 100);
+            assert.equal(pool.lpAmount, 100);
+            assert.equal((await this.newMine.stakingNewSupply()).valueOf(), 100);
             
-            await expectRevert(this.newMine.setPoolState(0, false, true, {from: alice}),'onlyMaintainer: caller is not the maintainer');
-            await this.newMine.setPoolState(0, false, true, {from: dev});
+            await expectRevert(this.newMine.setPoolState(0, false, {from: alice}),'onlyMaintainer: caller is not the maintainer');
+            await this.newMine.setPoolState(0, false, {from: dev});
             var pool = await this.newMine.poolInfo(0);
-            assert.equal(pool.allocPoint, 0);
+            assert.equal(pool.lpAmount, 100);
             assert.equal(pool.state, false);
-            assert.equal((await this.newMine.totalAllocPoint()), 0);
+            assert.equal((await this.newMine.stakingNewSupply()).valueOf(), 0);
         })
 
         it('should allow emergency withdraw', async () => {
             const startBlock = (await web3.eth.getBlockNumber()) + 100;
             // 1000 per block farming rate starting at startBlock with bonus until block startBlock+1000
-            this.newMine = await NewMineForNode.new(this.wnew.address, '1000', startBlock, startBlock+1000, dev, {from: alice});
+            this.newMine = await NewMineForCommunity.new(this.wnew.address, '1000', startBlock, startBlock+1000, dev, {from: alice});
             await this.newMine.addPool(this.wnewToken1.address, {from: dev});
             assert.equal((await this.newMine.poolLength()).valueOf(), 1);
             var pool = await this.newMine.poolInfo(0);
             assert.equal(pool.lpToken, this.wnewToken1.address);
-            assert.equal(pool.allocPoint, 0);
-            assert.equal(pool.lastRewardBlock, startBlock);
-            assert.equal(pool.accNewPerShare, 0);
-            assert.equal(pool.newPerLP/1e12, 1);
             assert.equal(pool.state, true);
+            assert.equal(pool.lpAmount, 0);
+            assert.equal(pool.newPerLP/1e12, 1);
+            assert.equal(pool.rewardDebt, 0);
+            assert.equal(pool.accNewPerShare, 0);
 
             await this.wnewToken1.approve(this.newMine.address, '1000', { from: bob });
             await this.newMine.deposit(0, '100', { from: bob });
             assert.equal((await this.wnewToken1.balanceOf(bob)).valueOf(), '900');
             pool = await this.newMine.poolInfo(0);
-            assert.equal(pool.allocPoint/1e12, 100);
-            assert.equal((await this.newMine.totalAllocPoint())/1e12, 100);
+            assert.equal(pool.lpAmount, 100);
+            assert.equal((await this.newMine.stakingNewSupply()).valueOf(), 100);
             
             await this.newMine.emergencyWithdraw(0, { from: bob });
             assert.equal((await this.wnewToken1.balanceOf(bob)).valueOf(), '1000');
             pool = await this.newMine.poolInfo(0);
-            assert.equal(pool.allocPoint/1e12, 0);
-            assert.equal((await this.newMine.totalAllocPoint())/1e12, 0);
+            assert.equal(pool.lpAmount, 0);
+            assert.equal((await this.newMine.stakingNewSupply()).valueOf(), 0);
         });
 
         it('should give out News only after farming time', async () => {
             const number = await web3.eth.getBlockNumber();
             const startBlock = number + 100;
             // 1 per block farming rate starting at startBlock with bonus until block startBlock+1000
-            this.newMine = await NewMineForNode.new(this.wnew.address, web3.utils.toWei('1', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
+            this.newMine = await NewMineForCommunity.new(this.wnew.address, web3.utils.toWei('1', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
             await this.newMine.send(web3.utils.toWei('5', 'ether'), {from: alice})
             assert.equal(await web3.eth.getBalance(this.newMine.address), web3.utils.toWei('5', 'ether'));
 
@@ -199,7 +199,7 @@ contract('NewMineForNode', ([alice, bob, carol, dev, minter]) => {
             const number = await web3.eth.getBlockNumber();
             const startBlock = number + 100;
             // 1 per block farming rate starting at startBlock with bonus until block startBlock+1000
-            this.newMine = await NewMineForNode.new(this.wnew.address, web3.utils.toWei('1', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
+            this.newMine = await NewMineForCommunity.new(this.wnew.address, web3.utils.toWei('1', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
             await this.newMine.send(web3.utils.toWei('10', 'ether'), {from: alice})
             const newMineBalance = 10
             assert.equal((await web3.eth.getBalance(this.newMine.address))/1e18, newMineBalance);
@@ -229,7 +229,7 @@ contract('NewMineForNode', ([alice, bob, carol, dev, minter]) => {
             const number = await web3.eth.getBlockNumber();
             const startBlock = number + 100;
             // 0.1 new per block farming rate starting at startBlock with bonus until block startBlock+1000
-            this.newMine = await NewMineForNode.new(this.wnew.address, web3.utils.toWei('0.1', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
+            this.newMine = await NewMineForCommunity.new(this.wnew.address, web3.utils.toWei('0.1', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
             await this.newMine.send(web3.utils.toWei('5', 'ether'), {from: minter})
             const newMineBalance = web3.utils.toWei('5', 'ether')    
             assert.equal((await web3.eth.getBalance(this.newMine.address)).valueOf(), newMineBalance);
@@ -306,9 +306,9 @@ contract('NewMineForNode', ([alice, bob, carol, dev, minter]) => {
 
         it('should not distribute News if pool state false', async () => {
             const number = await web3.eth.getBlockNumber();
-            const startBlock = number;
+            const startBlock = number+10;
             // 0.1 new per block farming rate starting at startBlock with bonus until block startBlock+1000
-            this.newMine = await NewMineForNode.new(this.wnew.address, web3.utils.toWei('0.1', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
+            this.newMine = await NewMineForCommunity.new(this.wnew.address, web3.utils.toWei('0.1', 'ether'), startBlock, startBlock+1000, dev, {from: alice});
             await this.newMine.send(web3.utils.toWei('5', 'ether'), {from: minter})
             const newMineBalance = web3.utils.toWei('5', 'ether')    
             assert.equal((await web3.eth.getBalance(this.newMine.address)).valueOf(), newMineBalance);
@@ -322,15 +322,15 @@ contract('NewMineForNode', ([alice, bob, carol, dev, minter]) => {
 
             // At block number+100, set pool state to false,she should have 10*0.1 = 1 pending.
             await time.advanceBlockTo(number + 98);
-            await expectRevert(this.newMine.setPoolState(0, false, true, {from: alice}),'onlyMaintainer: caller is not the maintainer');
-            await this.newMine.setPoolState(0, false, true, {from: dev});
+            await expectRevert(this.newMine.setPoolState(0, false, {from: alice}),'onlyMaintainer: caller is not the maintainer');
+            await this.newMine.setPoolState(0, false, {from: dev});
             assert.equal((await this.newMine.pendingNew(0, alice))/1e18, '1');
             await time.advanceBlockTo(number + 110);
             assert.equal((await this.newMine.pendingNew(0, alice))/1e18, '1');
             // At block number+120, set pool state to true
             await time.advanceBlockTo(number + 118);
-            await expectRevert(this.newMine.setPoolState(0, false, true, {from: dev}),'setPoolState: state is not changed');
-            await this.newMine.setPoolState(0, true, true, {from: dev});
+            await expectRevert(this.newMine.setPoolState(0, false, {from: dev}),'setPoolState: state is not changed');
+            await this.newMine.setPoolState(0, true, {from: dev});
             // At block number+125, she should have 1 + 5*0.1 = 1.5 pending.
             await time.advanceBlockTo(number + 125);
             assert.equal((await this.newMine.pendingNew(0, alice))/1e18, '1.5');
@@ -341,7 +341,7 @@ contract('NewMineForNode', ([alice, bob, carol, dev, minter]) => {
             const startBlock = number + 100;
             const endBlock = number + 200;
             // 0.1 new per block farming rate starting at startBlock with bonus until block startBlock+1000
-            this.newMine = await NewMineForNode.new(this.wnew.address, web3.utils.toWei('0.1', 'ether'), startBlock, endBlock, dev, {from: alice});
+            this.newMine = await NewMineForCommunity.new(this.wnew.address, web3.utils.toWei('0.1', 'ether'), startBlock, endBlock, dev, {from: alice});
             await this.newMine.send(web3.utils.toWei('5', 'ether'), {from: minter})
             const newMineBalance = web3.utils.toWei('5', 'ether')    
             assert.equal((await web3.eth.getBalance(this.newMine.address)).valueOf(), newMineBalance);
@@ -359,6 +359,7 @@ contract('NewMineForNode', ([alice, bob, carol, dev, minter]) => {
             const aliceTX = await this.newMine.deposit(0, '0', { from: alice });
             var aliceTXUsed = parseInt(aliceTX.receipt.gasUsed) * 20000000000;
             assert.equal((await this.newMine.newSupply())/1e18, '1');       
+            console.log(Number(await web3.eth.getBalance(alice))+aliceTXUsed-aliceBalance)
             assert.equal(parseInt((Number(await web3.eth.getBalance(alice))+aliceTXUsed-aliceBalance)/1e18), '1');
             assert.equal(((newMineBalance - parseInt((await web3.eth.getBalance(this.newMine.address))))/1e18), 1);
 
@@ -379,7 +380,7 @@ contract('NewMineForNode', ([alice, bob, carol, dev, minter]) => {
             const number = await web3.eth.getBlockNumber();
             const startBlock = number + 100;
             // 1000 new per block farming rate starting at startBlock with bonus until block startBlock+1000
-            this.newMine = await NewMineForNode.new(this.wnew.address, '1000', startBlock, startBlock+1000, dev, {from: alice});
+            this.newMine = await NewMineForCommunity.new(this.wnew.address, '1000', startBlock, startBlock+1000, dev, {from: alice});
             await this.newMine.addPool(this.wnewToken1.address, {from: dev});
             await this.newMine.addPool(this.wnewToken2.address, {from: dev});
             await this.wnewToken1.approve(this.newMine.address, '1000', { from: alice });

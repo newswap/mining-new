@@ -8,8 +8,8 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import './uniswapv2/interfaces/IUniswapV2Pair.sol';
 
-// NewMineForNodeV2 is the master of NewFarm. He can distribute New and he is a fair guy.
-contract NewMineForNodeV2 is Ownable {
+// NewMineForCommunity is the master of Community Mining. He can distribute New and he is a fair guy.
+contract NewMineForCommunity is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 

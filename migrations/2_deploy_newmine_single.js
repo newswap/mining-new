@@ -19,10 +19,10 @@ module.exports = async function (deployer, network, accounts) {
 
   // dev
   // newMineSingle: 0x6b0070Ed4C588F86Deb07ca115EBd8AF4B30017e
-  // 测试网
+  // testnet/mainnet
   // newMineSingle: 0x8b028f0F001417E3b9c086C5740722839DaB12b0
 
-  // const newMine = await NewMineSingle.at("0x8b028f0F001417E3b9c086C5740722839DaB12b0");
+  // const newMine = await NewMineSingle.at("0x8b028f0f001417e3b9c086c5740722839dab12b0");
   // console.log(await newMine.lpToken())
   // console.log(await newMine.newPerBlock()/1e18)
   // console.log(await newMine.lastRewardBlock())
