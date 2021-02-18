@@ -74,7 +74,7 @@ contract('NewMineForCommunity gas', ([alice, bob, carol, dev, minter]) => {
         const number = await web3.eth.getBlockNumber();
         const startBlock = number;
         // 1000wei per block farming rate starting at startBlock with bonus until block startBlock+1000
-        this.newMine = await NewMineForCommunity.new(this.wnew.address, 1000, startBlock, startBlock+10000, dev, {from: alice});
+        this.newMine = await NewMineForCommunity.new(this.wnew.address, 1000, startBlock+1, startBlock+10000, dev, {from: alice});
         await this.newMine.send(web3.utils.toWei('1', 'ether'), {from: minter})
         const newMineBalance = web3.utils.toWei('1', 'ether')    
         assert.equal((await web3.eth.getBalance(this.newMine.address)).valueOf(), newMineBalance);
@@ -218,15 +218,15 @@ contract('NewMineForCommunity gas', ([alice, bob, carol, dev, minter]) => {
         const number = await web3.eth.getBlockNumber();
         await time.advanceBlockTo(number+10)
 
-        var temp = await this.newMine.setPoolState(0, false, true, {from: dev}); 
+        var temp = await this.newMine.setPoolState(0, false, {from: dev}); 
         console.log("0 setPoolState false:"+parseInt(temp.receipt.gasUsed))
-        temp = await this.newMine.setPoolState(0, true, true, {from: dev}); 
+        temp = await this.newMine.setPoolState(0, true, {from: dev}); 
         console.log("0 setPoolState true:"+parseInt(temp.receipt.gasUsed))
         
         if(parseInt(await this.newMine.poolLength()) > 1) {
-            var temp = await this.newMine.setPoolState(1, false, true, {from: dev}); 
+            var temp = await this.newMine.setPoolState(1, false, {from: dev}); 
             console.log("1 setPoolState false:"+parseInt(temp.receipt.gasUsed))
-            temp = await this.newMine.setPoolState(1, true, true, {from: dev}); 
+            temp = await this.newMine.setPoolState(1, true, {from: dev}); 
             console.log("1 setPoolState true:"+parseInt(temp.receipt.gasUsed))   
         }
     });
